@@ -1,17 +1,19 @@
+#%%
 import requests
 import json
 import pandas as pd
-
+from transformers import MarianMTModel, MarianTokenizer
 # for ollama write in terminal :      ollama serve
 # to check it is running :      curl http://localhost:11434
 # you can kill ollama by activity monitor or
+
 
 #make sure to change file path of the .csv
 #I assumed the files are csv but we can add more support later
 
 
 def parseMetadata():
-    df = pd.read_csv('/Users/refobic/Downloads/22.csv') #change file path if youa are using this code from github 
+    df = pd.read_excel('/home/nicolas/Documents/Metadata G1 2025 -1.xlsx') #change file path if youa are using this code from github 
 
     if not df.empty:
         firstRow = df.iloc[0] #take first row as sample metadata
@@ -31,7 +33,7 @@ def parseMetadata():
             "description": "No metadata available from the CSV file."
         }
     return metadata
-
+#%%
 def createPrompt(metadata):
 
     intro = f"From the library's digital archives, we bring you a publication by {metadata['creator']}, dated {metadata['date']}."
@@ -46,7 +48,7 @@ def genScript(prompt):
     API = "http://localhost:11434/api/generate" #local api
 
     payload = {
-        "model": "llama3.2:3b",
+        "model": "llama3.2:latest",
         "prompt": prompt,
         "stream": False
     }
@@ -85,7 +87,17 @@ def genScript(prompt):
         return error_message
     except requests.exceptions.RequestException as e:
         return f"[FATAL ERROR] An API request failed: {e}"
+def translateToArabic(script):
+    model = 'Helsinki-NLP/opus-mt-en-ar'
+    tokenizer = MarianTokenizer.from_pretrained(model)
+    model = MarianMTModel.from_pretrained(model)
 
+    inputs = tokenizer(script, return_tensors="pt", padding=True, truncation=True)
+
+    translated = model.generate(**inputs)
+
+    translated_text = tokenizer.batch_decode(translated, skip_special_tokens=True)
+    return translated_text[0] if translated_text else "Translation failed."
 def main():
     print("--- Starting Script Generation ---\n")
 
@@ -113,6 +125,10 @@ def main():
         print(script.strip())
     print("="*50)
     print("\n--- Script Generation Complete ---")
-
+    print("Translating into Arabic...")
+    translated_script = translateToArabic(script)
+    print("\n--- Translated Script ---")
+    print(translated_script.strip())
+    print("\n--- Translation Complete ---") 
 if __name__ == "__main__":
     main()
