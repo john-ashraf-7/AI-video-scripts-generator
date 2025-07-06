@@ -216,6 +216,36 @@ class ScriptGenerator:
             return False, "QC Failed: Script does not start with a visual cue as requested."
 
         return True, "Quality check passed."
+    
+    def refine_translation_with_ollama(self, arabic_text):
+        """
+        Takes a machine-translated Arabic script and uses an LLM to refine it.
+        """
+        print("\n6. Refining translation with Ollama LLM...")
+
+        # This prompt is crucial. It instructs the LLM to act as an editor.
+        refinement_prompt = (
+            "You are an expert Arabic editor. The following text is a machine translation of a video script. "
+            "Your task is to proofread and refine this text. Correct any grammatical errors, improve the "
+            "sentence structure, and enhance the overall flow to make it sound natural and eloquent, as if "
+            "written by a native speaker. Preserve the original meaning and intent. "
+            "Do not add any commentary, explanations, or preamble. "
+            "Only output the final, polished Arabic text.\n\n"
+            f"--- DRAFT TEXT ---\n{arabic_text}\n--- END DRAFT ---\n\n"
+            "Polished Arabic Script:"
+        )
+
+        payload = {"model": self.ollama_model, "prompt": refinement_prompt, "stream": False}
+
+        try:
+            response = requests.post(self.ollama_api_url, json=payload, timeout=90)
+            response.raise_for_status()
+            response_data = response.json()
+            refined_text = response_data.get('response', 'Error: Could not parse refinement response.')
+            print("   - Refinement with Ollama successful.")
+            return refined_text
+        except requests.exceptions.RequestException as e:
+            return f"[FATAL ERROR] An error occurred during refinement: {e}"
 
     def generate_script(self, prompt):
         """
@@ -320,11 +350,20 @@ class ScriptGenerator:
 
         # 5. Translate if QC passed
         if is_passed:
+            # Step 5a: Get the initial "draft" translation
             translated_script = self.translate_to_arabic(script)
-            print("\n--- TRANSLATED SCRIPT (ARABIC) ---")
+            print("\n--- INITIAL DRAFT TRANSLATION (ARABIC) ---")
             print("="*50)
             print(translated_script.strip())
             print("="*50)
+
+            # Step 5b: Use the LLM to refine the draft translation
+            refined_script = self.refine_translation_with_ollama(translated_script)
+            print("\n--- REFINED SCRIPT (ARABIC) ---")
+            print("="*50)
+            print(refined_script.strip())
+            print("="*50)
+            
         else:
             print("\nSkipping translation due to QC failure.")
 
