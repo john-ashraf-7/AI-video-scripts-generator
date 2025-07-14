@@ -19,6 +19,7 @@ import sys
 
 # --- Direct Import for Debugging ---
 # We are explicitly importing torch here to see if the script can find it at startup.
+
 try:
     import torch
     print("--- PyTorch Check: Successfully imported torch. ---")
@@ -33,7 +34,7 @@ from transformers import MarianMTModel, MarianTokenizer
 
 # For Ollama, ensure the server is running in another terminal tab
 # In your terminal, you can run:
-# ollama serve
+# ollama server
 # To check if it's running, you can use:
 # curl http://localhost:11434
 
