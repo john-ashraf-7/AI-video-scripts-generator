@@ -4,11 +4,11 @@ import os
 import logging
 from typing import Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-from script_generator import ScriptGenerator # Import our class
+from AIScript import ScriptGenerator # Import our class
 
 # --- Configuration ---
 load_dotenv() # Load variables from .env file
@@ -16,6 +16,9 @@ load_dotenv() # Load variables from .env file
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api/generate")
+MONGODB_URI = os.getenv("MONGODB_URI")
+PORT = os.getenv("PORT")
+
 
 # --- Logging Setup ---
 logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -73,9 +76,11 @@ async def startup_event():
     if not engine:
         logger.error("ScriptGenerator engine is not available. Endpoints will fail.")
 
+
 @app.get("/", include_in_schema=False)
 async def root():
     return {"message": "Welcome to the Video Script Generation API. See /docs for usage."}
+
 
 @app.get("/health", tags=["Status"], response_model=HealthCheckResponse)
 async def health_check():
