@@ -44,60 +44,75 @@ class ScriptGenerator:
     """
 
     def __init__(self, ollama_model="llama3:8b", ollama_api_url="http://localhost:11434/api/generate"):
-        """
-        Initializes the ScriptGenerator.
-
-        Args:
-            ollama_model (str): The name of the Ollama model to use.
-            ollama_api_url (str): The API endpoint for the local Ollama instance.
-        """
         self.ollama_model = ollama_model
         self.ollama_api_url = ollama_api_url
+        # Translation components can be kept or removed as needed
         self.translation_model_name = 'Helsinki-NLP/opus-mt-en-ar'
         self.translation_model = None
         self.translation_tokenizer = None
 
         self.prompt_templates = {
+            # --- ✨ NEW, MORE STRICT PROMPT ---
             "publication_deep_dive": (
-                "You are a master storyteller and scriptwriter for a museum's short documentary series. Your task is to transform the following facts into a short, compelling 2-minute video script that brings the subject to life. The script must be exactly 3 paragraphs, with a visual cue before each paragraph."
-                "\n\n**CRITICAL INSTRUCTIONS:**"
-                "\n1.  **Create a Narrative:** Do not simply list the facts. Weave them into a story with a hook, a body, and a conclusion."
-                "\n2.  **Focus on the 'Why':** Why is this person or work important? What was their world like? What is their legacy?"
-                "\n3.  **Handle Missing Info:** If the description is missing, use the known facts (like the author, title, and date) to speculate on the historical context and the story behind the publication."
-                "\n4.  **Adhere to the Format:** Your entire response must start directly with the first visual cue. Do not add any preambles or introductions."
-                "\n\n--- Verified Facts ---"
-                "\n{factual_summary}"
-                "\n--- End of Facts ---"
-                "\n\n(Visual cue for the opening shot)"
-                "\n\n[Paragraph 1: The Hook. Introduce the central character or theme in an intriguing way.]"
-                "\n\n(Visual cue for the middle section)"
-                "\n\n[Paragraph 2: The Context. Describe the world in which the book was written and its significance during that time.]"
-                "\n\n(Visual cue for the conclusion)"
-                "\n\n[Paragraph 3: The Legacy. Explain why this work still matters and leave the audience with a powerful thought.]"
+                "You are a professional scriptwriter. Your only job is to produce a clean, ready-to-use video script based on the information below. "
+                "The script MUST be exactly 3 paragraphs. Each paragraph MUST be preceded by a visual cue in parentheses, like `(A shot of the book cover)`."
+                "\n\n**CRITICAL RULES:**"
+                "\n1. **NO EXTRA TEXT:** Your response MUST start DIRECTLY with the first visual cue. Do NOT include titles, headings, preambles, or markdown (`**`, `#`)."
+                "\n2. **USE PROVIDED INFO ONLY:** Base the entire script on the 'Source Information' provided. Do not invent facts or use outside knowledge."
+                "\n\n--- Source Information ---\n"
+                "{factual_summary}"
+                "\n--- End of Information ---"
             ),
             "photograph": (
-                "You are a scriptwriter for short museum videos. Generate a short, engaging 3-paragraph video script "
-                "for a historical photograph. Do not add any pre-amble. "
-                "Start with a visual cue in parentheses, like '(CLOSE UP on the photograph)'. "
-                "**IMPORTANT: Do not use any markdown formatting like asterisks or hashtags. The output must be plain text.**\n\n"
-                "Context: This photograph, titled '{title}', was taken by {creator} around {date}.\n"
+                "You are a scriptwriter for short museum videos. Generate a short, engaging 3-paragraph video script for a historical photograph. "
+                "Your response must be ONLY the script itself. Start DIRECTLY with a visual cue in parentheses. Do NOT use markdown."
+                "\n\nContext: This photograph, titled '{title}', was taken by {creator} around {date}.\n"
                 "Description: The photo captures the following scene: {description}\n"
                 "Narrative Hook: Generate a compelling narrative that speculates on the story behind the image and its significance."
             ),
             "publication": (
-                "You are a scriptwriter for short museum videos. Generate a short, engaging 3-paragraph video script "
-                "based on the following information. Do not add any pre-amble, just the script itself. "
-                "Start with a visual cue in parentheses.\n\n"
-                "Intro: From the library's digital archives, we bring you a publication by {creator}, dated {date}.\n"
+                "You are a scriptwriter for short museum videos. Generate a short, engaging 3-paragraph video script based on the following information. "
+                "Your response must be ONLY the script itself. Start DIRECTLY with a visual cue in parentheses. Do NOT use markdown."
+                "\n\nIntro: From the library's digital archives, we bring you a publication by {creator}, dated {date}.\n"
                 "Body: Titled '{title}', this item details the following: {description}\n"
-                "Conclusion: This publication offers a unique insight into its subject. Explore more stories like this in our digital collection."
+                "Conclusion: This publication offers a unique insight into its subject."
             ),
             "default": (
                 "You are a scriptwriter. Generate a short, engaging 3-paragraph video script based on this item: "
                 "Title: {title}, Creator: {creator}, Date: {date}, Description: {description}. "
-                "Start with a visual cue."
+                "Start DIRECTLY with a visual cue."
             )
         }
+
+    def _clean_raw_script(self, raw_script: str) -> str:
+        """
+        Cleans the raw LLM output by removing preambles and markdown.
+        """
+        # Find the first visual cue, which can be in parentheses or brackets.
+        pos1 = raw_script.find('(')
+        pos2 = raw_script.find('[')
+
+        start_pos = -1
+        if pos1 != -1 and pos2 != -1:
+            start_pos = min(pos1, pos2)
+        elif pos1 != -1:
+            start_pos = pos1
+        elif pos2 != -1:
+            start_pos = pos2
+        
+        # If a cue is found, slice the script from that point.
+        if start_pos != -1:
+            script = raw_script[start_pos:]
+        else:
+            script = raw_script  # Keep original if no cue is found, QC will catch it
+
+        # Remove markdown, placeholders, and extra whitespace.
+        script = re.sub(r'\*\*', '', script)  # Remove bold markdown
+        script = re.sub(r'\[.*?paragraph.*?\]', '', script, flags=re.IGNORECASE)
+        script = re.sub(r'\(Your visual cue here\)', '(Visual cue)', script, flags=re.IGNORECASE)
+        
+        return script.strip()
+
 
     def _check_ollama_status(self):
         """
@@ -275,49 +290,20 @@ class ScriptGenerator:
             print(f"     - API Error: Could not connect to Google Books API. {e}")
             return None
 
-    def _generate_factual_summary(self, metadata):
-        """Generates a factual summary by combining local metadata and Google Books API data."""
-        print("2. Generating Factual Summary (Hybrid API + LLM Approach)...")
-        
-        # --- API CALL INTEGRATION ---
-        api_facts = self._fetch_book_details_from_api(metadata)
-        
-        # Create the text block for the API facts, or a note if it failed
-        if api_facts:
-            api_facts_text = (
-                f"Title: {api_facts['api_title']}\n"
-                f"Author(s): {api_facts['api_authors']}\n"
-                f"Published Date: {api_facts['api_published_date']}\n"
-                f"Publisher: {api_facts['api_publisher']}\n"
-                f"Categories: {api_facts['api_categories']}\n"
-                f"Page Count: {api_facts['api_page_count']}\n"
-                f"Description: {api_facts['api_description']}"
-            )
-        else:
-            api_facts_text = "No additional information was found from the books database."
-
-        # --- NEW AND IMPROVED PROMPT ---
-        prompt = (
-            "You are a research assistant. Create a concise, factual summary about a publication. "
-            "Combine the Original Metadata with the more reliable Verified API Data. "
-            "**CRITICAL: If there is a conflict, trust the 'Verified API Data'.**\n\n"
-            "--- Original Metadata (from library record) ---\n"
-            "Title: {title}\n"
-            "Creator: {creator}\n"
-            "Date: {date}\n\n"
-            "--- Verified API Data (from Google Books) ---\n"
-            "{api_data}\n"
-            "--- End of Data ---\n\n"
-            "Based on ALL the information above, write a single, clean paragraph summarizing the key facts about this book."
-        ).format(
-            title=metadata['title'],
-            creator=metadata['creator'],
-            date=metadata['date'],
-            api_data=api_facts_text
+    def _generate_factual_summary(self, metadata: dict) -> str:
+        """
+        Creates a simple, factual summary directly from the provided metadata.
+        This method no longer calls any external APIs or other LLMs.
+        """
+        print("2. Generating Factual Summary (from provided metadata only)...")
+        # Simply format the provided metadata into a clean string.
+        summary = (
+            f"Title: {metadata.get('title', 'N/A')}\n"
+            f"Creator: {metadata.get('creator', 'N/A')}\n"
+            f"Date: {metadata.get('date', 'N/A')}\n"
+            f"Description: {metadata.get('description', 'No description provided.')}"
         )
-        
-        summary = self._send_prompt_to_ollama(prompt, timeout=90)
-        print("   - Factual summary received.")
+        print("   - Factual summary created from input.")
         return summary
 
     def _create_prompt(self, metadata, artifact_type="publication_deep_dive", factual_summary=None):
@@ -327,6 +313,8 @@ class ScriptGenerator:
         if not template:
             return f"Generate a script for {metadata['title']}"
 
+        # This logic remains the same, but the factual_summary is now guaranteed
+        # to be from your metadata only.
         if artifact_type == "publication_deep_dive" and factual_summary:
             metadata_with_summary = metadata.copy()
             metadata_with_summary['factual_summary'] = factual_summary
@@ -337,19 +325,17 @@ class ScriptGenerator:
         print(f"   - Using template for artifact type: '{artifact_type}'")
         return prompt
 
-    def _quality_check(self, script_text):
-        """Performs basic checks."""
+    def _quality_check(self, script_text: str):
+        """Performs basic checks on the cleaned script."""
         if not script_text or "error" in script_text.lower() or len(script_text.strip()) < 10:
             return False, "QC Failed: Generation returned an empty or error-like response."
         
-        cleaned_text = re.sub(r'\[.*?paragraph.*?\]', '', script_text, flags=re.IGNORECASE)
+        if len(script_text.split()) < 20:
+            return False, f"QC Failed: Generated script is too short (words: {len(script_text.split())})."
         
-        if len(cleaned_text.split()) < 20:
-            return False, f"QC Failed: Generated script is too short (words: {len(cleaned_text.split())})."
-        
-        cleaned_script_for_cue = script_text.strip().lstrip(' *')
-        if not cleaned_script_for_cue.startswith('('):
-            return False, "QC Failed: Script does not start with a visual cue as requested."
+        # Check if the cleaned script starts correctly.
+        if not (script_text.startswith('(') or script_text.startswith('[')):
+            return False, "QC Failed: Script does not start with a visual cue like `()` or `[]`."
         
         return True, "Quality check passed."
     

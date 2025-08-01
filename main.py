@@ -88,29 +88,17 @@ async def get_gallery():
 async def generate_script(request: MetadataRequest):
     """Generate a video script from metadata."""
     try:
-        # Generate factual summary for deep dive
         factual_summary = None
         if request.artifact_type == "publication_deep_dive":
             factual_summary = script_generator._generate_factual_summary(request.metadata)
         
-        # Create prompt from metadata
         prompt = script_generator._create_prompt(request.metadata, request.artifact_type, factual_summary)
         
-        # Generate English script
         raw_script = script_generator._send_prompt_to_ollama(prompt)
         
-        # Clean the script
-        first_cue_position = raw_script.find('(')
-        if first_cue_position != -1:
-            script = raw_script[first_cue_position:]
-        else:
-            script = raw_script
+        # --- ✨ USE THE NEW, CENTRALIZED CLEANING METHOD ---
+        script = script_generator._clean_raw_script(raw_script)
         
-        import re
-        script = re.sub(r'\[.*?paragraph.*?\]', '', script, flags=re.IGNORECASE).strip()
-        script = re.sub(r'\(Your visual cue here\)', '(Visual cue)', script, flags=re.IGNORECASE).strip()
-        
-        # Quality check
         qc_passed, qc_message = script_generator._quality_check(script)
         
         result = {
@@ -120,12 +108,9 @@ async def generate_script(request: MetadataRequest):
             "arabic_translation_refined": None
         }
         
-        # Translate if QC passed
         if qc_passed:
             try:
-                # Get initial translation
                 arabic_translation = script_generator.translate_to_arabic(script)
-                # Refine translation
                 refined_arabic = script_generator.refine_translation_with_ollama(arabic_translation)
                 result["arabic_translation_refined"] = refined_arabic
             except Exception as e:
@@ -143,29 +128,17 @@ async def generate_batch_scripts(requests: list[MetadataRequest]):
     
     for request in requests:
         try:
-            # Generate factual summary for deep dive
             factual_summary = None
             if request.artifact_type == "publication_deep_dive":
                 factual_summary = script_generator._generate_factual_summary(request.metadata)
-            
-            # Create prompt from metadata
+
             prompt = script_generator._create_prompt(request.metadata, request.artifact_type, factual_summary)
             
-            # Generate English script
             raw_script = script_generator._send_prompt_to_ollama(prompt)
             
-            # Clean the script
-            first_cue_position = raw_script.find('(')
-            if first_cue_position != -1:
-                script = raw_script[first_cue_position:]
-            else:
-                script = raw_script
-            
-            import re
-            script = re.sub(r'\[.*?paragraph.*?\]', '', script, flags=re.IGNORECASE).strip()
-            script = re.sub(r'\(Your visual cue here\)', '(Visual cue)', script, flags=re.IGNORECASE).strip()
-            
-            # Quality check
+            # --- ✨ USE THE NEW, CENTRALIZED CLEANING METHOD ---
+            script = script_generator._clean_raw_script(raw_script)
+
             qc_passed, qc_message = script_generator._quality_check(script)
             
             result = {
@@ -175,12 +148,9 @@ async def generate_batch_scripts(requests: list[MetadataRequest]):
                 "arabic_translation_refined": None
             }
             
-            # Translate if QC passed
             if qc_passed:
                 try:
-                    # Get initial translation
                     arabic_translation = script_generator.translate_to_arabic(script)
-                    # Refine translation
                     refined_arabic = script_generator.refine_translation_with_ollama(arabic_translation)
                     result["arabic_translation_refined"] = refined_arabic
                 except Exception as e:
@@ -200,4 +170,4 @@ async def generate_batch_scripts(requests: list[MetadataRequest]):
     return {"results": results}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8002) 
+    uvicorn.run(app, host="127.0.0.1", port=8002)
