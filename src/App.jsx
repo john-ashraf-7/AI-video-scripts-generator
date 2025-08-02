@@ -32,6 +32,8 @@ function App() {
   const handleManualSubmit = (res) => {
     setResult(res);
     setSelectedItem(null);
+    // Reset processing state in Gallery
+    window.dispatchEvent(new CustomEvent('resetProcessingState'));
   };
 
   const handleBatchSelect = async (items) => {
@@ -75,6 +77,8 @@ function App() {
     }
     
     setBatchProcessing(false);
+    // Reset batch processing state in Gallery
+    window.dispatchEvent(new CustomEvent('resetBatchProcessingState'));
   };
 
   return (
@@ -124,11 +128,16 @@ function App() {
       )}
       
       {/* Single Result */}
-      {result && <ScriptViewer result={result} />}
+      {result && (
+        <div id="script-results" className="mt-6">
+          <h2 className="text-xl font-bold mb-4 text-center">Generated Script</h2>
+          <ScriptViewer result={result} />
+        </div>
+      )}
       
       {/* Batch Results */}
       {batchResults.length > 0 && (
-        <div className="mt-6">
+        <div id="batch-results" className="mt-6">
           <h2 className="text-xl font-bold mb-4 text-center">Batch Processing Results</h2>
           {batchProcessing && (
             <div className="text-center mb-4">
