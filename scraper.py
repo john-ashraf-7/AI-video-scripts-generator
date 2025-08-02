@@ -23,6 +23,7 @@ OUTFILE = pathlib.Path("auc_digital_selenium_page.json")
 
 # Configuration: Change this to scrape different pages
 PAGE_TO_SCRAPE = 7  # Change this number to scrape a different page
+MAX_RECORDS_TO_SCRAPE = 3  # Set to a number to limit records, or None to scrape all
 
 class AUCDigitalCollectionsSeleniumScraper:
     def __init__(self, headless=True):
@@ -260,146 +261,158 @@ class AUCDigitalCollectionsSeleniumScraper:
                 print(f"Using fallback DOM extraction method for {entry_url}")
                 record = {}
                 
-                # First, try to extract all visible text content and parse it
+                # Method 1: Look for specific "Object Description" and "Item Description" labels first
+                description_found = False
                 try:
-                    # Look for common metadata containers
-                    metadata_containers = self.driver.find_elements(By.CSS_SELECTOR, 
-                        "[class*='metadata'], [class*='description'], [class*='item-details'], " +
-                        "[class*='item-info'], [class*='record'], [class*='details'], " +
-                        "[id*='metadata'], [id*='details'], .content, .main-content")
-                    
-                    # Also try to find all text elements that might contain metadata
-                    all_text_elements = self.driver.find_elements(By.XPATH, "//*[text()]")
-                    
-                    # Combine all potential sources
-                    all_elements = metadata_containers + all_text_elements
-                    
-                    # Extract all text content to analyze
-                    page_text = []
-                    for element in all_elements:
-                        try:
-                            text = element.text.strip()
-                            if text and len(text) > 2:
-                                page_text.append(text)
-                        except:
-                            continue
-                    
-                    # Join all text and split into lines for analysis
-                    full_text = "\n".join(page_text)
-                    lines = [line.strip() for line in full_text.split('\n') if line.strip()]
-                    
-                    # Look for metadata patterns in the text
-                    metadata_patterns = {
-                        'Title': ['Title', 'title', 'TITLE'],
-                        'Creator': ['Creator', 'creator', 'CREATOR', 'Author', 'author'],
-                        'Date': ['Date', 'date', 'DATE', 'Year', 'year'],
-                        'Subject': ['Subject', 'subject', 'SUBJECT', 'Topic', 'topic'],
-                        'Type': ['Type', 'type', 'TYPE', 'Format', 'format'],
-                        'Language': ['Language', 'language', 'LANGUAGE'],
-                        'Publisher': ['Publisher', 'publisher', 'PUBLISHER'],
-                        'Source': ['Source', 'source', 'SOURCE'],
-                        'Collection': ['Collection', 'collection', 'COLLECTION'],
-                        'Rights': ['Rights', 'rights', 'RIGHTS', 'Copyright', 'copyright'],
-                        'Call number': ['Call number', 'call number', 'CALL NUMBER', 'Identifier', 'identifier'],
-                        'Link to catalogue': ['Link to catalogue', 'link to catalogue', 'Catalogue', 'catalogue']
-                    }
-                    
-                    # Try to find Object Description first, then Item Description
-                    description_found = False
-                    description_patterns = [
-                        'Object Description',
-                        'Item Description', 
-                        'object description',
-                        'item description',
-                        'Description',
-                        'description',
-                        'DESCRIPTION'
+                    # Try to find Object Description or Item Description using more specific XPath
+                    description_xpath_patterns = [
+                        "//*[contains(text(), 'Object Description')]/following-sibling::*[1]",
+                        "//*[contains(text(), 'Object Description')]/../following-sibling::*[1]",
+                        "//*[contains(text(), 'Item Description')]/following-sibling::*[1]", 
+                        "//*[contains(text(), 'Item Description')]/../following-sibling::*[1]",
+                        "//*[text()='Object Description']/following-sibling::*[1]",
+                        "//*[text()='Item Description']/following-sibling::*[1]"
                     ]
                     
-                    for i, line in enumerate(lines):
-                        for desc_pattern in description_patterns:
-                            if desc_pattern in line and not description_found:
-                                # Look for the next non-empty line as the description content
-                                for j in range(i + 1, min(i + 5, len(lines))):
-                                    if j < len(lines):
-                                        potential_desc = lines[j].strip()
-                                        # Skip if it's another metadata label
-                                        if potential_desc and len(potential_desc) > 10 and not any(
-                                            potential_desc.endswith(':') or 
-                                            any(pattern in potential_desc for patterns in metadata_patterns.values() for pattern in patterns)
-                                            for patterns in metadata_patterns.values()
-                                        ):
-                                            record['Description'] = potential_desc
-                                            description_found = True
-                                            print(f"Found description using pattern '{desc_pattern}': {potential_desc[:50]}...")
-                                            break
-                                if description_found:
+                    for xpath_pattern in description_xpath_patterns:
+                        try:
+                            desc_elements = self.driver.find_elements(By.XPATH, xpath_pattern)
+                            for desc_element in desc_elements:
+                                desc_text = desc_element.text.strip()
+                                if desc_text and len(desc_text) > 10:
+                                    record['Description'] = desc_text
+                                    description_found = True
+                                    print(f"Found description using XPath pattern: {desc_text[:50]}...")
                                     break
-                        if description_found:
-                            break
+                            if description_found:
+                                break
+                        except Exception as e:
+                            continue
                     
-                    # Extract other metadata using pattern matching
+                    # If XPath didn't work, try CSS selectors with text search
+                    if not description_found:
+                        all_elements = self.driver.find_elements(By.XPATH, "//*[text()]")
+                        for i, element in enumerate(all_elements):
+                            try:
+                                text = element.text.strip()
+                                if text in ['Object Description', 'Item Description']:
+                                    # Look for the next meaningful sibling or parent sibling
+                                    candidates = []
+                                    try:
+                                        candidates.append(element.find_element(By.XPATH, "following-sibling::*[1]"))
+                                    except:
+                                        pass
+                                    try:
+                                        candidates.append(element.find_element(By.XPATH, "../following-sibling::*[1]"))
+                                    except:
+                                        pass
+                                    try:
+                                        parent = element.find_element(By.XPATH, "..")
+                                        candidates.append(parent.find_element(By.XPATH, "following-sibling::*[1]"))
+                                    except:
+                                        pass
+                                    
+                                    for candidate in candidates:
+                                        candidate_text = candidate.text.strip()
+                                        if candidate_text and len(candidate_text) > 10:
+                                            record['Description'] = candidate_text
+                                            description_found = True
+                                            print(f"Found description using element search for '{text}': {candidate_text[:50]}...")
+                                            break
+                                    if description_found:
+                                        break
+                            except Exception as e:
+                                continue
+                
+                except Exception as e:
+                    print(f"Error in description extraction: {e}")
+                
+                # Method 2: Extract other metadata using simple text patterns
+                try:
+                    # Get all visible text from the page
+                    body_text = self.driver.find_element(By.TAG_NAME, "body").text
+                    lines = [line.strip() for line in body_text.split('\n') if line.strip()]
+                    
+                    # Simple field extraction patterns
+                    field_patterns = {
+                        'Title': ['Title', 'title'],
+                        'Creator': ['Creator', 'creator', 'Author', 'author'], 
+                        'Date': ['Date', 'date'],
+                        'Subject': ['Subject', 'subject'],
+                        'Type': ['Type', 'type'],
+                        'Language': ['Language', 'language'],
+                        'Publisher': ['Publisher', 'publisher'],
+                        'Source': ['Source', 'source'],
+                        'Collection': ['Collection', 'collection'],
+                        'Rights': ['Rights', 'rights'],
+                        'Call number': ['Call number', 'call number', 'Identifier', 'identifier']
+                    }
+                    
                     for i, line in enumerate(lines):
-                        for field_name, patterns in metadata_patterns.items():
+                        for field_name, patterns in field_patterns.items():
                             if field_name not in record:  # Don't overwrite existing data
                                 for pattern in patterns:
-                                    if pattern in line and (line.endswith(':') or pattern + ':' in line):
-                                        # Look for the next non-empty line as the value
-                                        for j in range(i + 1, min(i + 3, len(lines))):
+                                    if line == pattern or line == pattern + ':' or line.startswith(pattern + ':'):
+                                        # Look for the value in the next few lines
+                                        for j in range(i + 1, min(i + 4, len(lines))):
                                             if j < len(lines):
                                                 potential_value = lines[j].strip()
-                                                if potential_value and len(potential_value) > 1:
-                                                    # Skip if it looks like another metadata label
-                                                    if not (potential_value.endswith(':') or 
-                                                           any(p in potential_value for patterns in metadata_patterns.values() for p in patterns)):
-                                                        record[field_name] = potential_value
-                                                        print(f"Found {field_name}: {potential_value}")
-                                                        break
+                                                # Skip if it's empty or looks like another field name
+                                                if (potential_value and 
+                                                    not potential_value.endswith(':') and
+                                                    len(potential_value) > 1 and
+                                                    not any(potential_value.startswith(p) for patterns_list in field_patterns.values() for p in patterns_list)):
+                                                    record[field_name] = potential_value
+                                                    print(f"Found {field_name}: {potential_value}")
+                                                    break
                                         break
                 
                 except Exception as e:
-                    print(f"Error in text-based extraction: {e}")
-                    
-                # If we still don't have much data, try the original DOM-based approach
+                    print(f"Error in text-based metadata extraction: {e}")
+                
+                # Method 3: Try structured DOM extraction as a final fallback
                 if len(record) < 3:
                     try:
-                        # Look for definition lists, tables, or other structured metadata
-                        structured_elements = self.driver.find_elements(By.CSS_SELECTOR, 
-                            "dl, table, .metadata-table, [class*='field'], [class*='row']")
+                        metadata_containers = self.driver.find_elements(By.CSS_SELECTOR, 
+                            "dl, table, .metadata, [class*='metadata'], [class*='field'], [class*='item']")
                         
-                        for element in structured_elements:
+                        for container in metadata_containers:
                             try:
-                                # Look for key-value pairs
-                                keys = element.find_elements(By.CSS_SELECTOR, "dt, th, .label, .key, strong, b")
-                                for key_elem in keys:
-                                    key_text = key_elem.text.strip()
-                                    if key_text:
+                                # Look for definition list items
+                                dt_elements = container.find_elements(By.CSS_SELECTOR, "dt, th, strong, b, .label")
+                                for dt in dt_elements:
+                                    key = dt.text.strip()
+                                    if key and key.endswith(':'):
+                                        key = key[:-1]  # Remove trailing colon
+                                    
+                                    if key:
                                         try:
-                                            # Try different ways to find the corresponding value
+                                            # Try to find corresponding dd, td, or next sibling
                                             value_elem = None
                                             try:
-                                                value_elem = key_elem.find_element(By.XPATH, "following-sibling::dd[1]")
+                                                value_elem = dt.find_element(By.XPATH, "following-sibling::dd[1]")
                                             except:
                                                 try:
-                                                    value_elem = key_elem.find_element(By.XPATH, "following-sibling::td[1]")
+                                                    value_elem = dt.find_element(By.XPATH, "following-sibling::td[1]")
                                                 except:
                                                     try:
-                                                        value_elem = key_elem.find_element(By.XPATH, "following-sibling::*[1]")
+                                                        value_elem = dt.find_element(By.XPATH, "following-sibling::*[1]")
                                                     except:
                                                         pass
                                             
                                             if value_elem:
-                                                value_text = value_elem.text.strip()
-                                                if value_text and value_text != key_text:
-                                                    record[key_text] = value_text
-                                        except:
+                                                value = value_elem.text.strip()
+                                                if value and value != key and len(value) > 1:
+                                                    record[key] = value
+                                                    print(f"Found structured {key}: {value}")
+                                        except Exception as e:
                                             continue
-                            except:
+                            except Exception as e:
                                 continue
                     except Exception as e:
                         print(f"Error in structured extraction: {e}")
                 
-                # Extract image URL
+                # Always try to extract image URL
                 image_url = self.extract_image_url()
                 if image_url:
                     record['Image URL'] = image_url
@@ -423,6 +436,12 @@ class AUCDigitalCollectionsSeleniumScraper:
             page_num = PAGE_TO_SCRAPE
             entry_urls = self.get_entries_from_page(page_num)
             print(f"Found {len(entry_urls)} entries on page {page_num}")
+            
+            # Limit the number of records if MAX_RECORDS_TO_SCRAPE is set
+            if MAX_RECORDS_TO_SCRAPE is not None and MAX_RECORDS_TO_SCRAPE > 0:
+                entry_urls = entry_urls[:MAX_RECORDS_TO_SCRAPE]
+                print(f"Limited to scraping {len(entry_urls)} entries (MAX_RECORDS_TO_SCRAPE = {MAX_RECORDS_TO_SCRAPE})")
+            
             for i, entry_url in enumerate(entry_urls):
                 print(f"Scraping entry {i+1}/{len(entry_urls)} on page {page_num}: {entry_url}")
                 entry_data = self.extract_description_data(entry_url)
