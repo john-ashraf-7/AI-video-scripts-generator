@@ -11,6 +11,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   const [searchFilter, setSearchFilter] = useState("all"); // "all", "title", "creator", "call_number", "date"
   const [dateFilter, setDateFilter] = useState({ from: "", to: "" });
   const [availableYears, setAvailableYears] = useState([]);
+  const [sortBy, setSortBy] = useState("name"); // "name", "creator", "year", "year_desc"
   const [processingItem, setProcessingItem] = useState(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
@@ -111,8 +112,9 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       });
     }
 
-    setFilteredItems(filtered);
-  }, [searchQuery, searchFilter, dateFilter, items]);
+    const sortedAndFilteredItems = sortItems(filtered);
+    setFilteredItems(sortedAndFilteredItems);
+  }, [searchQuery, searchFilter, dateFilter, items, sortBy]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -132,6 +134,36 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   const clearAllFilters = () => {
     setSearchQuery("");
     setDateFilter({ from: "", to: "" });
+    setSortBy("name");
+  };
+
+  const sortItems = (items) => {
+    const sortedItems = [...items];
+    
+    switch (sortBy) {
+      case "name":
+        return sortedItems.sort((a, b) => 
+          (a.title || "").localeCompare(b.title || "")
+        );
+      case "creator":
+        return sortedItems.sort((a, b) => 
+          (a.creator || "").localeCompare(b.creator || "")
+        );
+      case "year":
+        return sortedItems.sort((a, b) => {
+          const yearA = parseInt(a.date) || 0;
+          const yearB = parseInt(b.date) || 0;
+          return yearA - yearB;
+        });
+      case "year_desc":
+        return sortedItems.sort((a, b) => {
+          const yearA = parseInt(a.date) || 0;
+          const yearB = parseInt(b.date) || 0;
+          return yearB - yearA;
+        });
+      default:
+        return sortedItems;
+    }
   };
 
   const handleItemClick = (item) => {
@@ -143,8 +175,6 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       setSelectedItems([...selectedItems, item]);
     }
   };
-
-
 
   const handleSingleSelect = (item) => {
     setProcessingItem(item.id);
@@ -219,11 +249,14 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <div className="sm:w-48">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Search in:
+            </div>
             <select
               value={searchFilter}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
             >
               <option value="all">Search All Fields</option>
               <option value="title">Title Only</option>
@@ -234,57 +267,79 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
           </div>
         </div>
         
-        {/* Date Range Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Filter by Year:
+        {/* Date Range Filter, Sort, and Clear Button */}
+        <div className="flex flex-col md:flex-row gap-3 items-start md:items-center flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Filter by Year:
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={dateFilter.from}
+                onChange={(e) => handleDateFilterChange('from', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
+              >
+                <option value="">From Year</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              <span className="text-gray-500 font-medium">to</span>
+              <select
+                value={dateFilter.to}
+                onChange={(e) => handleDateFilterChange('to', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
+              >
+                <option value="">To Year</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex gap-2 items-center">
+          
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Sort by:
+            </div>
             <select
-              value={dateFilter.from}
-              onChange={(e) => handleDateFilterChange('from', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[140px]"
             >
-              <option value="">From Year</option>
-              {availableYears.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-            <span className="text-gray-500 font-medium">to</span>
-            <select
-              value={dateFilter.to}
-              onChange={(e) => handleDateFilterChange('to', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
-            >
-              <option value="">To Year</option>
-              {availableYears.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
+              <option value="name">Name (A-Z)</option>
+              <option value="creator">Creator (A-Z)</option>
+              <option value="year">Year (Oldest First)</option>
+              <option value="year_desc">Year (Newest First)</option>
             </select>
           </div>
-          {(searchQuery || dateFilter.from || dateFilter.to) && (
-            <button
-              onClick={clearAllFilters}
-              className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 underline whitespace-nowrap"
-            >
-              Clear All Filters
-            </button>
-          )}
+          
+          {/* Clear Filters Button */}
+          <button
+            onClick={clearAllFilters}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap ml-auto"
+          >
+            Clear All Filters
+          </button>
         </div>
         
         {/* Search Results Info */}
         {(searchQuery || dateFilter.from || dateFilter.to) && (
-          <div className="text-sm text-gray-600">
-            Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
+          <div className="text-sm text-gray-600 mb-4">
+            Showing {filteredItems.length} of {items.length} items
             {searchQuery && (
-              <span>
-                {searchFilter !== "all" && ` in ${searchFilter.replace('_', ' ')}`}
-                {` matching "${searchQuery}"`}
+              <span className="ml-2">
+                • Searching for "{searchQuery}" in {searchFilter === "all" ? "all fields" : searchFilter}
               </span>
             )}
             {(dateFilter.from || dateFilter.to) && (
-              <span>
-                {searchQuery && ' and'} from {dateFilter.from || 'beginning'} to {dateFilter.to || 'present'}
+              <span className="ml-2">
+                • Date range: {dateFilter.from || "start"} to {dateFilter.to || "end"}
+              </span>
+            )}
+            {sortBy !== "name" && (
+              <span className="ml-2">
+                • Sorted by {sortBy === "creator" ? "creator" : sortBy === "year" ? "year (oldest first)" : "year (newest first)"}
               </span>
             )}
           </div>
