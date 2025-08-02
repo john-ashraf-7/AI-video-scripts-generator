@@ -30,6 +30,8 @@ After installing Ollama, pull the Llama3:8B model:
 ollama pull llama3:8b
 ```
 
+**Note:** The system is configured to work with `llama3:8b`. If you prefer to use `llama3.2:3b`, you'll need to update the model name in `AIScript.py`.
+
 This will download the model (about 5GB). The first run will take some time.
 
 ## 🔧 Step 3: Start Ollama Server
@@ -65,7 +67,7 @@ Keep this terminal running. The server will be available at `http://localhost:11
    python main.py
    ```
 
-   The backend will be available at `http://localhost:8000`
+   The backend will be available at `http://localhost:8002`
 
 ## 🔧 Step 5: Set Up React Frontend
 
@@ -92,15 +94,21 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
 2. **Check the API status** - You should see a green checkmark if everything is working
 
-3. **Test with sample data:**
-   - Title: "The History of Ancient Egypt"
-   - Creator: "Dr. Sarah Johnson"
-   - Date: "2020"
-   - Description: "A comprehensive study of ancient Egyptian civilization, covering pharaohs, pyramids, and daily life in the Nile Valley."
+3. **Browse the Library Collection:**
+   - The Gallery interface will load sample items from `sample_data.jsonl`
+   - Use the search, filter, and sort features to find items
+   - Items now include rich metadata like Arabic titles, publishers, subjects, and institutional information
 
-4. **Select "Publication Deep Dive"** as the artifact type
+4. **Generate Scripts:**
+   - Click "Generate Script" on any item for individual processing
+   - Select multiple items and use "Process X Items" for batch processing
+   - Watch the progress indicators during processing
 
-5. **Click "Generate Script"** and wait for the results
+5. **Enhanced Features:**
+   - **Search**: Find items by title, creator, call number, or date
+   - **Filter**: Filter by year range using dropdown menus
+   - **Sort**: Sort by name, creator, or year (ascending/descending)
+   - **Rich Metadata**: Scripts now use comprehensive metadata including Arabic titles, publishers, subjects, and collection information
 
 ## 🔍 Troubleshooting
 
@@ -112,7 +120,7 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
 2. **"API not reachable"**
    - Ensure the Python backend is running (`python main.py`)
-   - Check if port 8000 is available
+   - Check if port 8002 is available
 
 3. **"Translation failed"**
    - This is normal for the first run as models download
@@ -153,10 +161,12 @@ AI-video-scripts-generator/
 
 The application should now be fully functional. You can:
 
-- Generate English video scripts from library metadata
-- Get automatic Arabic translations
-- View quality control results
-- Export scripts for video production
+- **Browse Library Collection**: Interactive gallery with search, filter, and sort capabilities
+- **Rich Metadata Processing**: Scripts utilize comprehensive metadata including Arabic titles, publishers, subjects, and institutional context
+- **Batch Processing**: Generate scripts for multiple items with progress tracking
+- **Bilingual Output**: Get automatic Arabic translations with format preservation
+- **Quality Control**: View quality control results and validation
+- **Enhanced User Experience**: Loading indicators, auto-scroll, and completion notifications
 
 ## 📞 Support
 
