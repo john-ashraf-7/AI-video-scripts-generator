@@ -343,29 +343,40 @@ class ScriptGenerator:
         """Takes a machine-translated Arabic script and uses an LLM to refine it."""
         print("\n7. Refining translation with Ollama LLM...")
         refinement_prompt = (
-            "You are an expert Arabic language editor. Proofread and polish the following machine-translated DRAFT TEXT. "
-            "Your job is ONLY to correct grammar and improve the flow. "
-            "You MUST NOT change the paragraph structure or the location of visual cues `()`. "
-            "You MUST NOT add any notes, commentary, or preambles. "
-            "Your final output should ONLY be the polished Arabic script and nothing else.\n\n"
-            f"--- DRAFT TEXT ---\n{arabic_text}\n--- END DRAFT ---\n\n"
-            "Polished Arabic Script:"
+            "You are an expert Arabic language editor. Your ONLY job is to fix awkward wording and grammar errors in the Arabic text below. "
+            "CRITICAL RULES:\n"
+            "1. DO NOT add, remove, or change any visual cues in parentheses like (A shot of the book cover)\n"
+            "2. DO NOT add extra sentences, words, or content\n"
+            "3. DO NOT change the paragraph structure or number of paragraphs\n"
+            "4. DO NOT add introductions, conclusions, or commentary\n"
+            "5. ONLY fix grammar mistakes and awkward Arabic phrasing\n"
+            "6. Keep the exact same meaning and length\n"
+            "7. Your response must start DIRECTLY with the corrected Arabic text\n\n"
+            f"Text to refine:\n{arabic_text}"
         )
         
         response_text = self._send_prompt_to_ollama(refinement_prompt, timeout=90)
         
-        if "Polished Arabic Script:" in response_text:
-            final_text = response_text.split("Polished Arabic Script:")[-1].strip()
-        elif "--- END DRAFT ---" in response_text:
-            final_text = response_text.split("--- END DRAFT ---")[-1].strip()
-        else:
-            final_text = response_text
+        # Clean the response to ensure it starts directly with the Arabic text
+        cleaned_response = response_text.strip()
+        
+        # Remove any potential preambles or labels
+        lines = cleaned_response.split('\n')
+        
+        # Find the first line that contains Arabic text or visual cue
+        start_index = 0
+        for i, line in enumerate(lines):
+            if line.strip() and (line.strip().startswith('(') or any(ord(char) > 127 for char in line)):
+                start_index = i
+                break
+        
+        final_text = '\n'.join(lines[start_index:]).strip()
         
         print("   - Refinement with Ollama successful.")
         return final_text
 
     def translate_to_arabic(self, script_text):
-        """Translates the given English text to Arabic paragraph by paragraph."""
+        """Translates the given English text to Arabic paragraph by paragraph, preserving visual cues."""
         print("\n6. Translating to Arabic...")
         try:
             if self.translation_model is None or self.translation_tokenizer is None:
@@ -377,14 +388,37 @@ class ScriptGenerator:
             paragraphs = script_text.strip().split('\n\n')
             translated_paragraphs = []
             print(f"   - Translating {len(paragraphs)} paragraph(s)...")
+            
             for i, p in enumerate(paragraphs):
-                if not p.strip() or "[your visual cue here]" in p.lower():
+                if not p.strip():
                     continue
+                
                 print(f"     - Translating paragraph {i+1}...")
-                inputs = self.translation_tokenizer(p, return_tensors="pt", padding=True, truncation=True, max_length=512)
-                translated_ids = self.translation_model.generate(**inputs)
-                translated_p = self.translation_tokenizer.batch_decode(translated_ids, skip_special_tokens=True)[0]
-                translated_paragraphs.append(translated_p)
+                
+                # Check if paragraph starts with visual cue
+                visual_cue = ""
+                text_to_translate = p.strip()
+                
+                # Extract visual cue if present (starts with parenthesis)
+                if text_to_translate.startswith('(') and ')' in text_to_translate:
+                    cue_end = text_to_translate.find(')') + 1
+                    visual_cue = text_to_translate[:cue_end]
+                    text_to_translate = text_to_translate[cue_end:].strip()
+                
+                # Translate only the text content, not the visual cue
+                if text_to_translate:
+                    inputs = self.translation_tokenizer(text_to_translate, return_tensors="pt", padding=True, truncation=True, max_length=512)
+                    translated_ids = self.translation_model.generate(**inputs)
+                    translated_text = self.translation_tokenizer.batch_decode(translated_ids, skip_special_tokens=True)[0]
+                    
+                    # Combine visual cue with translated text
+                    if visual_cue:
+                        translated_p = visual_cue + "\n" + translated_text
+                    else:
+                        translated_p = translated_text
+                        
+                    translated_paragraphs.append(translated_p)
+            
             full_translation = "\n\n".join(translated_paragraphs)
             print("   - Translation successful.")
             return full_translation
