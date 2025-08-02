@@ -13,6 +13,8 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   const [availableYears, setAvailableYears] = useState([]);
   const [processingItem, setProcessingItem] = useState(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const [processingComplete, setProcessingComplete] = useState(false);
 
   useEffect(() => {
     loadGallery();
@@ -20,19 +22,29 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
     // Listen for state reset events from App component
     const handleResetProcessing = () => {
       setProcessingItem(null);
+      setProcessingComplete(true);
+      // Hide completion message after 3 seconds
+      setTimeout(() => setProcessingComplete(false), 3000);
     };
     
     const handleResetBatchProcessing = () => {
       setBatchProcessing(false);
+      setBatchProgress({ current: 0, total: 0 });
+    };
+    
+    const handleBatchProgressUpdate = (event) => {
+      setBatchProgress(event.detail);
     };
     
     window.addEventListener('resetProcessingState', handleResetProcessing);
     window.addEventListener('resetBatchProcessingState', handleResetBatchProcessing);
+    window.addEventListener('updateBatchProgress', handleBatchProgressUpdate);
     
     // Cleanup event listeners
     return () => {
       window.removeEventListener('resetProcessingState', handleResetProcessing);
       window.removeEventListener('resetBatchProcessingState', handleResetBatchProcessing);
+      window.removeEventListener('updateBatchProgress', handleBatchProgressUpdate);
     };
   }, []);
 
@@ -149,6 +161,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   const handleBatchProcess = () => {
     if (selectedItems.length > 0) {
       setBatchProcessing(true);
+      setBatchProgress({ current: 0, total: selectedItems.length });
       // Scroll to show batch processing
       setTimeout(() => {
         const element = document.getElementById('batch-results');
@@ -300,7 +313,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
                 {batchProcessing ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Processing...
+                    Processing... ({batchProgress.current}/{batchProgress.total})
                   </>
                 ) : (
                   `Process ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`
@@ -354,6 +367,15 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                         Processing...
+                      </>
+                    ) : processingComplete && processingItem === null ? (
+                      <>
+                        <div className="text-green-600 flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          Completed!
+                        </div>
                       </>
                     ) : (
                       'Generate Script'

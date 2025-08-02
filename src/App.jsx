@@ -43,6 +43,12 @@ function App() {
     const results = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      
+      // Update progress at start of processing this item
+      window.dispatchEvent(new CustomEvent('updateBatchProgress', {
+        detail: { current: i + 1, total: items.length }
+      }));
+      
       try {
         const response = await fetch('http://localhost:8002/generate-script', {
           method: 'POST',
@@ -67,13 +73,18 @@ function App() {
             item: item,
             result: { error: 'Failed to generate script' }
           });
+          setBatchResults([...results]); // Update with error result too
         }
       } catch (error) {
         results.push({
           item: item,
           result: { error: error.message }
         });
+        setBatchResults([...results]); // Update with error result too
       }
+      
+      // Small delay to ensure UI updates are visible
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     setBatchProcessing(false);
