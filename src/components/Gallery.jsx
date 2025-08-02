@@ -3,9 +3,12 @@ import { getGallery } from "../api";
 
 export default function Gallery({ onItemSelect, onBatchSelect }) {
   const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFilter, setSearchFilter] = useState("all"); // "all", "title", "creator", "call_number"
 
   useEffect(() => {
     loadGallery();
@@ -16,12 +19,49 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       setLoading(true);
       const data = await getGallery();
       setItems(data.items || []);
+      setFilteredItems(data.items || []);
     } catch (err) {
       setError("Failed to load gallery items");
       console.error("Gallery loading error:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter items based on search query and filter type
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredItems(items);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = items.filter(item => {
+      switch (searchFilter) {
+        case "title":
+          return item.title.toLowerCase().includes(query);
+        case "creator":
+          return item.creator.toLowerCase().includes(query);
+        case "call_number":
+          return item.call_number.toLowerCase().includes(query);
+        case "all":
+        default:
+          return (
+            item.title.toLowerCase().includes(query) ||
+            item.creator.toLowerCase().includes(query) ||
+            item.call_number.toLowerCase().includes(query)
+          );
+      }
+    });
+    setFilteredItems(filtered);
+  }, [searchQuery, searchFilter, items]);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleFilterChange = (e) => {
+    setSearchFilter(e.target.value);
   };
 
   const handleItemClick = (item) => {
@@ -76,7 +116,43 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   return (
     <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-4xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Library Collection</h2>
-      <p className="text-gray-600 mb-6">Select items from the library collection to generate video scripts:</p>
+      <p className="text-gray-600 mb-4">Select items from the library collection to generate video scripts:</p>
+      
+      {/* Search Controls */}
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search library items..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+          </div>
+          <div className="sm:w-48">
+            <select
+              value={searchFilter}
+              onChange={handleFilterChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            >
+              <option value="all">Search All Fields</option>
+              <option value="title">Title Only</option>
+              <option value="creator">Creator Only</option>
+              <option value="call_number">Call Number Only</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* Search Results Info */}
+        {searchQuery && (
+          <div className="text-sm text-gray-600">
+            Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} 
+            {searchFilter !== "all" && ` in ${searchFilter.replace('_', ' ')}`}
+            {searchQuery && ` matching "${searchQuery}"`}
+          </div>
+        )}
+      </div>
       
       {/* Batch Processing Controls */}
       {selectedItems.length > 0 && (
@@ -104,7 +180,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       )}
       
       <div className="space-y-3">
-        {items.map((item) => {
+        {filteredItems.map((item) => {
           const isSelected = selectedItems.find(selected => selected.id === item.id);
           return (
             <div
@@ -153,6 +229,18 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       {items.length === 0 && (
         <div className="text-center py-8">
           <p className="text-gray-600">No library items available.</p>
+        </div>
+      )}
+      
+      {items.length > 0 && filteredItems.length === 0 && searchQuery && (
+        <div className="text-center py-8">
+          <p className="text-gray-600">No items found matching your search criteria.</p>
+          <button
+            onClick={() => setSearchQuery("")}
+            className="mt-2 text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear search
+          </button>
         </div>
       )}
     </div>
