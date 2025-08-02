@@ -8,7 +8,9 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchFilter, setSearchFilter] = useState("all"); // "all", "title", "creator", "call_number"
+  const [searchFilter, setSearchFilter] = useState("all"); // "all", "title", "creator", "call_number", "date"
+  const [dateFilter, setDateFilter] = useState({ from: "", to: "" });
+  const [availableYears, setAvailableYears] = useState([]);
 
   useEffect(() => {
     loadGallery();
@@ -20,6 +22,13 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       const data = await getGallery();
       setItems(data.items || []);
       setFilteredItems(data.items || []);
+      
+      // Extract unique years for date filtering
+      const years = [...new Set(data.items.map(item => {
+        const year = parseInt(item.date);
+        return isNaN(year) ? null : year;
+      }).filter(year => year !== null))].sort((a, b) => a - b);
+      setAvailableYears(years);
     } catch (err) {
       setError("Failed to load gallery items");
       console.error("Gallery loading error:", err);
@@ -28,33 +37,50 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
     }
   };
 
-  // Filter items based on search query and filter type
+  // Filter items based on search query, filter type, and date range
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredItems(items);
-      return;
+    let filtered = items;
+
+    // Apply text search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => {
+        switch (searchFilter) {
+          case "title":
+            return item.title.toLowerCase().includes(query);
+          case "creator":
+            return item.creator.toLowerCase().includes(query);
+          case "call_number":
+            return item.call_number.toLowerCase().includes(query);
+          case "date":
+            return item.date.toLowerCase().includes(query);
+          case "all":
+          default:
+            return (
+              item.title.toLowerCase().includes(query) ||
+              item.creator.toLowerCase().includes(query) ||
+              item.call_number.toLowerCase().includes(query) ||
+              item.date.toLowerCase().includes(query)
+            );
+        }
+      });
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = items.filter(item => {
-      switch (searchFilter) {
-        case "title":
-          return item.title.toLowerCase().includes(query);
-        case "creator":
-          return item.creator.toLowerCase().includes(query);
-        case "call_number":
-          return item.call_number.toLowerCase().includes(query);
-        case "all":
-        default:
-          return (
-            item.title.toLowerCase().includes(query) ||
-            item.creator.toLowerCase().includes(query) ||
-            item.call_number.toLowerCase().includes(query)
-          );
-      }
-    });
+    // Apply date range filter
+    if (dateFilter.from || dateFilter.to) {
+      filtered = filtered.filter(item => {
+        const itemYear = parseInt(item.date);
+        if (isNaN(itemYear)) return false;
+        
+        const fromYear = dateFilter.from ? parseInt(dateFilter.from) : -Infinity;
+        const toYear = dateFilter.to ? parseInt(dateFilter.to) : Infinity;
+        
+        return itemYear >= fromYear && itemYear <= toYear;
+      });
+    }
+
     setFilteredItems(filtered);
-  }, [searchQuery, searchFilter, items]);
+  }, [searchQuery, searchFilter, dateFilter, items]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -62,6 +88,18 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
 
   const handleFilterChange = (e) => {
     setSearchFilter(e.target.value);
+  };
+
+  const handleDateFilterChange = (type, value) => {
+    setDateFilter(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setDateFilter({ from: "", to: "" });
   };
 
   const handleItemClick = (item) => {
@@ -140,16 +178,64 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
               <option value="title">Title Only</option>
               <option value="creator">Creator Only</option>
               <option value="call_number">Call Number Only</option>
+              <option value="date">Date Only</option>
             </select>
           </div>
         </div>
         
+        {/* Date Range Filter */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            Filter by Year:
+          </div>
+          <div className="flex gap-2 items-center">
+            <select
+              value={dateFilter.from}
+              onChange={(e) => handleDateFilterChange('from', e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
+            >
+              <option value="">From Year</option>
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            <span className="text-gray-500">to</span>
+            <select
+              value={dateFilter.to}
+              onChange={(e) => handleDateFilterChange('to', e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
+            >
+              <option value="">To Year</option>
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          {(searchQuery || dateFilter.from || dateFilter.to) && (
+            <button
+              onClick={clearAllFilters}
+              className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 underline whitespace-nowrap"
+            >
+              Clear All Filters
+            </button>
+          )}
+        </div>
+        
         {/* Search Results Info */}
-        {searchQuery && (
+        {(searchQuery || dateFilter.from || dateFilter.to) && (
           <div className="text-sm text-gray-600">
-            Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} 
-            {searchFilter !== "all" && ` in ${searchFilter.replace('_', ' ')}`}
-            {searchQuery && ` matching "${searchQuery}"`}
+            Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
+            {searchQuery && (
+              <span>
+                {searchFilter !== "all" && ` in ${searchFilter.replace('_', ' ')}`}
+                {` matching "${searchQuery}"`}
+              </span>
+            )}
+            {(dateFilter.from || dateFilter.to) && (
+              <span>
+                {searchQuery && ' and'} from {dateFilter.from || 'beginning'} to {dateFilter.to || 'present'}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -236,10 +322,10 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
         <div className="text-center py-8">
           <p className="text-gray-600">No items found matching your search criteria.</p>
           <button
-            onClick={() => setSearchQuery("")}
+            onClick={clearAllFilters}
             className="mt-2 text-blue-600 hover:text-blue-800 underline"
           >
-            Clear search
+            Clear all filters
           </button>
         </div>
       )}
