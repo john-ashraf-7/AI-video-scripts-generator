@@ -11,9 +11,29 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
   const [searchFilter, setSearchFilter] = useState("all"); // "all", "title", "creator", "call_number", "date"
   const [dateFilter, setDateFilter] = useState({ from: "", to: "" });
   const [availableYears, setAvailableYears] = useState([]);
+  const [processingItem, setProcessingItem] = useState(null);
+  const [batchProcessing, setBatchProcessing] = useState(false);
 
   useEffect(() => {
     loadGallery();
+    
+    // Listen for state reset events from App component
+    const handleResetProcessing = () => {
+      setProcessingItem(null);
+    };
+    
+    const handleResetBatchProcessing = () => {
+      setBatchProcessing(false);
+    };
+    
+    window.addEventListener('resetProcessingState', handleResetProcessing);
+    window.addEventListener('resetBatchProcessingState', handleResetBatchProcessing);
+    
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener('resetProcessingState', handleResetProcessing);
+      window.removeEventListener('resetBatchProcessingState', handleResetBatchProcessing);
+    };
   }, []);
 
   const loadGallery = async () => {
@@ -112,14 +132,32 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
     }
   };
 
-  const handleBatchProcess = () => {
-    if (selectedItems.length > 0) {
-      onBatchSelect(selectedItems);
-    }
-  };
+
 
   const handleSingleSelect = (item) => {
+    setProcessingItem(item.id);
+    // Scroll to show loading state
+    setTimeout(() => {
+      const element = document.getElementById('script-results');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
     onItemSelect(item);
+  };
+
+  const handleBatchProcess = () => {
+    if (selectedItems.length > 0) {
+      setBatchProcessing(true);
+      // Scroll to show batch processing
+      setTimeout(() => {
+        const element = document.getElementById('batch-results');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+      onBatchSelect(selectedItems);
+    }
   };
 
   if (loading) {
@@ -184,7 +222,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
         </div>
         
         {/* Date Range Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
             Filter by Year:
           </div>
@@ -192,18 +230,18 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
             <select
               value={dateFilter.from}
               onChange={(e) => handleDateFilterChange('from', e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
             >
               <option value="">From Year</option>
               {availableYears.map(year => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
-            <span className="text-gray-500">to</span>
+            <span className="text-gray-500 font-medium">to</span>
             <select
               value={dateFilter.to}
               onChange={(e) => handleDateFilterChange('to', e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
             >
               <option value="">To Year</option>
               {availableYears.map(year => (
@@ -242,23 +280,31 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       
       {/* Batch Processing Controls */}
       {selectedItems.length > 0 && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex justify-between items-center">
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <span className="text-blue-800 font-medium">
               {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
             </span>
-            <div className="space-x-2">
+            <div className="flex gap-2 sm:ml-auto">
               <button
                 onClick={() => setSelectedItems([])}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Clear Selection
               </button>
               <button
                 onClick={handleBatchProcess}
-                className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
+                disabled={batchProcessing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               >
-                Process {selectedItems.length} Item{selectedItems.length > 1 ? 's' : ''}
+                {batchProcessing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Processing...
+                  </>
+                ) : (
+                  `Process ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`
+                )}
               </button>
             </div>
           </div>
@@ -301,9 +347,17 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
                       e.stopPropagation();
                       handleSingleSelect(item);
                     }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm font-medium"
+                    disabled={processingItem === item.id}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    Generate Script
+                    {processingItem === item.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      'Generate Script'
+                    )}
                   </button>
                 </div>
               </div>
