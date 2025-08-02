@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 import uvicorn
 import json
+import re
 from AIScript import ScriptGenerator
 
 app = FastAPI(title="AI Video Script Generator API")
@@ -67,19 +68,43 @@ async def get_gallery():
     try:
         gallery_items = []
         with open("sample_data.jsonl", 'r', encoding='utf-8') as f:
-            for i, line in enumerate(f):
-                try:
-                    item = json.loads(line.strip())
-                    gallery_items.append({
-                        "id": i,
-                        "title": item.get('Title', 'No Title'),
-                        "creator": item.get('Creator', 'Unknown'),
-                        "date": item.get('Date', 'Unknown'),
-                        "description": item.get('Description', 'No description'),
-                        "call_number": item.get('Call number', 'N/A')
-                    })
-                except json.JSONDecodeError:
-                    continue
+            content = f.read().strip()
+            # Check if it's a JSON array or JSONL format
+            if content.startswith('['):
+                # It's a JSON array
+                data = json.loads(content)
+            else:
+                # It's JSONL format - load line by line
+                f.seek(0)
+                data = []
+                for line in f:
+                    if line.strip():
+                        data.append(json.loads(line.strip()))
+            
+            for i, item in enumerate(data):
+                # Handle both old and new field names for backward compatibility
+                title = item.get('Title', item.get('title', 'No Title'))
+                creator = item.get('Creator', item.get('creator', 'Unknown'))
+                date = item.get('Date', item.get('date', 'Unknown'))
+                description = item.get('Description', item.get('description', 'No description'))
+                call_number = item.get('Call number', item.get('call_number', 'N/A'))
+                
+                # Clean up date field (remove trailing dashes and extra text)
+                if date and isinstance(date, str):
+                    date = date.replace('-', '').replace('date of publication not identified', 'Unknown')
+                    # Extract year from date strings like "1938-" or "1936"
+                    year_match = re.search(r'\b(\d{4})\b', date)
+                    if year_match:
+                        date = year_match.group(1)
+                
+                gallery_items.append({
+                    "id": i,
+                    "title": title,
+                    "creator": creator,
+                    "date": date,
+                    "description": description,
+                    "call_number": call_number
+                })
         return {"items": gallery_items}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load gallery: {str(e)}")

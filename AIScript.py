@@ -14,9 +14,14 @@
 import requests
 import json
 import os
+import tempfile
 import sys
 import re
 import difflib
+
+# Set temporary directory to avoid PyTorch issues
+os.environ['TMPDIR'] = os.path.expanduser('~/tmp')
+os.makedirs(os.path.expanduser('~/tmp'), exist_ok=True)
 
 # --- Direct Import for Debugging ---
 try:
@@ -28,7 +33,14 @@ except ImportError as e:
     print("--- Please ensure torch is correctly installed in the interpreter being used. ---")
     sys.exit(1)
 
-from transformers import MarianMTModel, MarianTokenizer
+try:
+    from transformers import MarianMTModel, MarianTokenizer
+    TRANSLATION_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Translation models not available: {e}")
+    TRANSLATION_AVAILABLE = False
+    MarianMTModel = None
+    MarianTokenizer = None
 
 
 # For Ollama, ensure the server is running in another terminal tab
@@ -292,18 +304,90 @@ class ScriptGenerator:
 
     def _generate_factual_summary(self, metadata: dict) -> str:
         """
-        Creates a simple, factual summary directly from the provided metadata.
-        This method no longer calls any external APIs or other LLMs.
+        Creates a comprehensive factual summary from all available metadata fields.
+        This method utilizes the rich metadata to provide detailed context.
         """
-        print("2. Generating Factual Summary (from provided metadata only)...")
-        # Simply format the provided metadata into a clean string.
-        summary = (
-            f"Title: {metadata.get('title', 'N/A')}\n"
-            f"Creator: {metadata.get('creator', 'N/A')}\n"
-            f"Date: {metadata.get('date', 'N/A')}\n"
-            f"Description: {metadata.get('description', 'No description provided.')}"
-        )
-        print("   - Factual summary created from input.")
+        print("2. Generating Enhanced Factual Summary (from all metadata fields)...")
+        
+        # Build comprehensive summary using all available fields
+        summary_parts = []
+        
+        # Basic identification
+        title = metadata.get('Title', metadata.get('title', 'N/A'))
+        title_arabic = metadata.get('Title (Arabic)', '')
+        summary_parts.append(f"Title: {title}")
+        if title_arabic:
+            summary_parts.append(f"Arabic Title: {title_arabic}")
+        
+        # Creator information
+        creator = metadata.get('Creator', metadata.get('creator', 'N/A'))
+        creator_arabic = metadata.get('Creator (Arabic)', '')
+        summary_parts.append(f"Creator/Author: {creator}")
+        if creator_arabic:
+            summary_parts.append(f"Arabic Creator: {creator_arabic}")
+        
+        # Publication details
+        date = metadata.get('Date', metadata.get('date', 'N/A'))
+        publisher = metadata.get('Publisher', '')
+        location = metadata.get('Location', '')
+        summary_parts.append(f"Date: {date}")
+        if publisher:
+            summary_parts.append(f"Publisher: {publisher}")
+        if location:
+            summary_parts.append(f"Location: {location}")
+        
+        # Content description
+        description = metadata.get('Description', metadata.get('description', 'No description provided.'))
+        summary_parts.append(f"Description: {description}")
+        
+        # Academic/scholarly context
+        subject = metadata.get('Subject', '')
+        language = metadata.get('Language', '')
+        genre = metadata.get('Genre (AAT)', '')
+        if subject:
+            summary_parts.append(f"Subject: {subject}")
+        if language:
+            summary_parts.append(f"Language: {language}")
+        if genre:
+            summary_parts.append(f"Type/Genre: {genre}")
+        
+        # Collection and institutional context
+        collection = metadata.get('Collection', '')
+        source = metadata.get('Source', '')
+        if collection:
+            summary_parts.append(f"Collection: {collection}")
+        if source:
+            summary_parts.append(f"Source Institution: {source}")
+        
+        # Special fields for maps and other formats
+        scale = metadata.get('Scale', '')
+        format_type = metadata.get('Format', '')
+        coverage = metadata.get('Coverage-Spatial/Note', '')
+        if scale:
+            summary_parts.append(f"Scale: {scale}")
+        if format_type:
+            summary_parts.append(f"Format: {format_type}")
+        if coverage:
+            summary_parts.append(f"Geographic Coverage: {coverage}")
+        
+        # Rights and access
+        rights = metadata.get('Rights', '')
+        license_info = metadata.get('License', '')
+        call_number = metadata.get('Call number', metadata.get('call_number', ''))
+        if rights:
+            summary_parts.append(f"Rights: {rights}")
+        if license_info:
+            summary_parts.append(f"License: {license_info}")
+        if call_number:
+            summary_parts.append(f"Call Number: {call_number}")
+        
+        # Additional notes
+        notes = metadata.get('Notes', '')
+        if notes:
+            summary_parts.append(f"Additional Notes: {notes}")
+        
+        summary = "\n".join(summary_parts)
+        print(f"   - Enhanced factual summary created with {len(summary_parts)} metadata fields.")
         return summary
 
     def _create_prompt(self, metadata, artifact_type="publication_deep_dive", factual_summary=None):
