@@ -12,7 +12,7 @@ Before you begin, make sure you have the following installed:
 
 ## 🔧 Step 1: Install Ollama
 
-The project uses Ollama to run the Llama3.2:3B model locally.
+The project uses Ollama to run the Llama3.2:8B model locally.
 
 ### macOS/Linux:
 ```bash
