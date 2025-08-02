@@ -56,7 +56,7 @@ The AUC Library seeks to promote its unique collections through engaging short-f
 
 | Category           | Tools                                      |
 |--------------------|--------------------------------------------|
-| Language Models    | [Ollama](https://ollama.ai/) + Llama3.2:3B |
+| Language Models    | [Ollama](https://ollama.ai/) + Llama3.2:8B |
 | Translation        | Helsinki-NLP Arabic translation models      |
 | Backend            | Python, FastAPI                            |
 | Frontend           | React.js                                   |
