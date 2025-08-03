@@ -23,7 +23,7 @@ OUTFILE = pathlib.Path("auc_digital_selenium_page.json")
 
 # Configuration: Change this to scrape different pages
 PAGE_TO_SCRAPE = 7  # Change this number to scrape a different page
-MAX_RECORDS_TO_SCRAPE = 3  # Set to a number to limit records, or None to scrape all
+MAX_RECORDS_TO_SCRAPE = 10  # Set to a number to limit records, or None to scrape all
 
 class AUCDigitalCollectionsSeleniumScraper:
     def __init__(self, headless=True):
@@ -206,6 +206,7 @@ class AUCDigitalCollectionsSeleniumScraper:
                     parent = item_data['item']['parent']
                     record = {}
                     if parent and 'fields' in parent:
+                        print(f"Found initial state with {len(parent['fields'])} fields")
                         for field in parent['fields']:
                             if field and 'key' in field and 'value' in field:
                                 key = field['key']
@@ -254,121 +255,189 @@ class AUCDigitalCollectionsSeleniumScraper:
                     if image_url:
                         record['Image URL'] = image_url
                     
-                    if record:
+                    if record and len(record) > 1:  # More than just Image URL
                         return record
+                    else:
+                        pass  # Continue to DOM extraction
+                else:
+                    pass  # Continue to DOM extraction
+            else:
+                pass  # Continue to DOM extraction
             try:
                 # Fallback method: try to extract metadata from DOM elements
-                print(f"Using fallback DOM extraction method for {entry_url}")
                 record = {}
                 
-                # Method 1: Look for specific "Object Description" and "Item Description" labels first
-                description_found = False
+                # Enhanced method: Look for structured metadata in Item Description section
                 try:
-                    # Try to find Object Description or Item Description using more specific XPath
-                    description_xpath_patterns = [
-                        "//*[contains(text(), 'Object Description')]/following-sibling::*[1]",
-                        "//*[contains(text(), 'Object Description')]/../following-sibling::*[1]",
-                        "//*[contains(text(), 'Item Description')]/following-sibling::*[1]", 
-                        "//*[contains(text(), 'Item Description')]/../following-sibling::*[1]",
-                        "//*[text()='Object Description']/following-sibling::*[1]",
-                        "//*[text()='Item Description']/following-sibling::*[1]"
+                    # First, try to find the Item Description section
+                    item_desc_section = None
+                    
+                    # Look for Item Description using various selectors
+                    item_desc_selectors = [
+                        "//*[contains(text(), 'Item Description')]",
+                        "//*[text()='Item Description']",
+                        "//*[contains(@class, 'item-description')]",
+                        "//*[contains(@class, 'metadata')]//*[contains(text(), 'Item Description')]"
                     ]
                     
-                    for xpath_pattern in description_xpath_patterns:
+
+                    
+                    for selector in item_desc_selectors:
                         try:
-                            desc_elements = self.driver.find_elements(By.XPATH, xpath_pattern)
-                            for desc_element in desc_elements:
-                                desc_text = desc_element.text.strip()
-                                if desc_text and len(desc_text) > 10:
-                                    record['Description'] = desc_text
-                                    description_found = True
-                                    print(f"Found description using XPath pattern: {desc_text[:50]}...")
-                                    break
-                            if description_found:
-                                break
+                            elements = self.driver.find_elements(By.XPATH, selector)
+                            for element in elements:
+                                # Check if this element or its parent contains structured metadata
+                                parent = element.find_element(By.XPATH, "..")
+                                if parent:
+                                    # Look for structured metadata within this section
+                                    metadata_elements = parent.find_elements(By.XPATH, ".//*[contains(text(), '(') and contains(text(), ')')]")
+                                    if metadata_elements:
+                                        item_desc_section = parent
+                                        break
+                                    
+                                    # Also check for common metadata patterns
+                                    metadata_patterns = [
+                                        "//*[contains(text(), 'Title (English)')]",
+                                        "//*[contains(text(), 'Creator')]",
+                                        "//*[contains(text(), 'Location')]",
+                                        "//*[contains(text(), 'Date')]",
+                                        "//*[contains(text(), 'Subject')]",
+                                        "//*[contains(text(), 'Keywords')]",
+                                        "//*[contains(text(), 'Medium')]",
+                                        "//*[contains(text(), 'Type')]",
+                                        "//*[contains(text(), 'Collection')]",
+                                        "//*[contains(text(), 'Source')]",
+                                        "//*[contains(text(), 'Access Rights')]"
+                                    ]
+                                    
+                                    for pattern in metadata_patterns:
+                                        try:
+                                            if parent.find_elements(By.XPATH, pattern):
+                                                item_desc_section = parent
+                                                break
+                                        except:
+                                            continue
+                                    
+                                    if item_desc_section:
+                                        break
                         except Exception as e:
                             continue
                     
-                    # If XPath didn't work, try CSS selectors with text search
-                    if not description_found:
-                        all_elements = self.driver.find_elements(By.XPATH, "//*[text()]")
-                        for i, element in enumerate(all_elements):
+                    # If we found the Item Description section, extract structured metadata
+                    if item_desc_section:
+                        # Extract all text content from the section
+                        section_text = item_desc_section.text
+                        lines = [line.strip() for line in section_text.split('\n') if line.strip()]
+                        
+                        # Parse structured metadata
+                        current_key = None
+                        current_value = None
+                        
+                        for i, line in enumerate(lines):
+                            # Skip empty lines
+                            if not line:
+                                continue
+                            
+                            # Check if this line looks like a field name (ends with colon or is a known field)
+                            if (line.endswith(':') or 
+                                line in ['Title (English)', 'Title (Arabic)', 'Creator', 'Location-Governorate (English)', 
+                                        'Location-Governorate (Arabic)', 'Location-Country (English)', 'Location-Country (Arabic)',
+                                        'Date', 'Subject LC', 'Keywords (English)', 'Keywords (Arabic)', 'Medium', 'Type',
+                                        'Collection', 'Source', 'Access Rights', 'Creator (Arabic)', 'Creator (English)', 
+                                        'Creator (Alternative)', 'Description (English)', 'Description (Arabic)', 'Size (H) x (W) cm']):
+                                
+                                # Save previous key-value pair if we have one
+                                if current_key and current_value:
+                                    record[current_key] = current_value.strip()
+                                
+                                # Start new key-value pair
+                                current_key = line.rstrip(':')
+                                current_value = ""
+                            else:
+                                # This line is likely a value or continuation of a value
+                                if current_key:
+                                    if current_value:
+                                        current_value += " " + line
+                                    else:
+                                        current_value = line
+                                else:
+                                    # If we don't have a key yet, this might be a standalone value
+                                    # Check if it looks like a title or description
+                                    if len(line) > 10 and not any(char in line for char in ['(', ')', ':']):
+                                        if 'Title' not in record:
+                                            record['Title'] = line
+                        
+                        # Don't forget the last key-value pair
+                        if current_key and current_value:
+                            record[current_key] = current_value.strip()
+                    
+                    # If we didn't find structured metadata in Item Description, try Object Description
+                    if len(record) < 3:
+                        obj_desc_selectors = [
+                            "//*[contains(text(), 'Object Description')]",
+                            "//*[text()='Object Description']",
+                            "//*[contains(@class, 'object-description')]"
+                        ]
+                        
+                        for selector in obj_desc_selectors:
                             try:
-                                text = element.text.strip()
-                                if text in ['Object Description', 'Item Description']:
-                                    # Look for the next meaningful sibling or parent sibling
-                                    candidates = []
-                                    try:
-                                        candidates.append(element.find_element(By.XPATH, "following-sibling::*[1]"))
-                                    except:
-                                        pass
-                                    try:
-                                        candidates.append(element.find_element(By.XPATH, "../following-sibling::*[1]"))
-                                    except:
-                                        pass
-                                    try:
-                                        parent = element.find_element(By.XPATH, "..")
-                                        candidates.append(parent.find_element(By.XPATH, "following-sibling::*[1]"))
-                                    except:
-                                        pass
-                                    
-                                    for candidate in candidates:
-                                        candidate_text = candidate.text.strip()
-                                        if candidate_text and len(candidate_text) > 10:
-                                            record['Description'] = candidate_text
-                                            description_found = True
-                                            print(f"Found description using element search for '{text}': {candidate_text[:50]}...")
+                                elements = self.driver.find_elements(By.XPATH, selector)
+                                for element in elements:
+                                    parent = element.find_element(By.XPATH, "..")
+                                    if parent:
+                                        desc_text = parent.text.strip()
+                                        if desc_text and len(desc_text) > 10:
+                                            record['Description'] = desc_text
                                             break
-                                    if description_found:
-                                        break
                             except Exception as e:
                                 continue
                 
                 except Exception as e:
-                    print(f"Error in description extraction: {e}")
+                    pass
                 
-                # Method 2: Extract other metadata using simple text patterns
-                try:
-                    # Get all visible text from the page
-                    body_text = self.driver.find_element(By.TAG_NAME, "body").text
-                    lines = [line.strip() for line in body_text.split('\n') if line.strip()]
+                # Method 2: Extract other metadata using simple text patterns (fallback)
+                if len(record) < 3:
+                    try:
+                        # Get all visible text from the page
+                        body_text = self.driver.find_element(By.TAG_NAME, "body").text
+                        lines = [line.strip() for line in body_text.split('\n') if line.strip()]
+                        
+                        # Simple field extraction patterns
+                        field_patterns = {
+                            'Title': ['Title', 'title'],
+                            'Creator': ['Creator', 'creator', 'Author', 'author'], 
+                            'Date': ['Date', 'date'],
+                            'Subject': ['Subject', 'subject'],
+                            'Type': ['Type', 'type'],
+                            'Language': ['Language', 'language'],
+                            'Publisher': ['Publisher', 'publisher'],
+                            'Source': ['Source', 'source'],
+                            'Collection': ['Collection', 'collection'],
+                            'Rights': ['Rights', 'rights'],
+                            'Call number': ['Call number', 'call number', 'Identifier', 'identifier']
+                        }
+                        
+                        for i, line in enumerate(lines):
+                            for field_name, patterns in field_patterns.items():
+                                if field_name not in record:  # Don't overwrite existing data
+                                    for pattern in patterns:
+                                        if line == pattern or line == pattern + ':' or line.startswith(pattern + ':'):
+                                            # Look for the value in the next few lines
+                                            for j in range(i + 1, min(i + 4, len(lines))):
+                                                if j < len(lines):
+                                                    potential_value = lines[j].strip()
+                                                    # Skip if it's empty or looks like another field name
+                                                    if (potential_value and 
+                                                        not potential_value.endswith(':') and
+                                                        len(potential_value) > 1 and
+                                                        not any(potential_value.startswith(p) for patterns_list in field_patterns.values() for p in patterns_list)):
+                                                        record[field_name] = potential_value
+                                                        break
+                                            break
+                                            break
                     
-                    # Simple field extraction patterns
-                    field_patterns = {
-                        'Title': ['Title', 'title'],
-                        'Creator': ['Creator', 'creator', 'Author', 'author'], 
-                        'Date': ['Date', 'date'],
-                        'Subject': ['Subject', 'subject'],
-                        'Type': ['Type', 'type'],
-                        'Language': ['Language', 'language'],
-                        'Publisher': ['Publisher', 'publisher'],
-                        'Source': ['Source', 'source'],
-                        'Collection': ['Collection', 'collection'],
-                        'Rights': ['Rights', 'rights'],
-                        'Call number': ['Call number', 'call number', 'Identifier', 'identifier']
-                    }
-                    
-                    for i, line in enumerate(lines):
-                        for field_name, patterns in field_patterns.items():
-                            if field_name not in record:  # Don't overwrite existing data
-                                for pattern in patterns:
-                                    if line == pattern or line == pattern + ':' or line.startswith(pattern + ':'):
-                                        # Look for the value in the next few lines
-                                        for j in range(i + 1, min(i + 4, len(lines))):
-                                            if j < len(lines):
-                                                potential_value = lines[j].strip()
-                                                # Skip if it's empty or looks like another field name
-                                                if (potential_value and 
-                                                    not potential_value.endswith(':') and
-                                                    len(potential_value) > 1 and
-                                                    not any(potential_value.startswith(p) for patterns_list in field_patterns.values() for p in patterns_list)):
-                                                    record[field_name] = potential_value
-                                                    print(f"Found {field_name}: {potential_value}")
-                                                    break
-                                        break
-                
-                except Exception as e:
-                    print(f"Error in text-based metadata extraction: {e}")
+                    except Exception as e:
+                        pass
                 
                 # Method 3: Try structured DOM extraction as a final fallback
                 if len(record) < 3:
@@ -404,22 +473,19 @@ class AUCDigitalCollectionsSeleniumScraper:
                                                 value = value_elem.text.strip()
                                                 if value and value != key and len(value) > 1:
                                                     record[key] = value
-                                                    print(f"Found structured {key}: {value}")
                                         except Exception as e:
                                             continue
                             except Exception as e:
                                 continue
                     except Exception as e:
-                        print(f"Error in structured extraction: {e}")
+                        pass
                 
                 # Always try to extract image URL
                 image_url = self.extract_image_url()
                 if image_url:
                     record['Image URL'] = image_url
                 
-                print(f"Fallback extraction completed. Found {len(record)} fields for {entry_url}")
-                if record:
-                    print(f"Extracted fields: {list(record.keys())}")
+
                 
                 return record
             except Exception as e:
