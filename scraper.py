@@ -23,13 +23,25 @@ OUTFILE = pathlib.Path("auc_digital_selenium_page.json")
 
 # Configuration: Change this to scrape different pages
 PAGE_TO_SCRAPE = 7  # Change this number to scrape a different page
-MAX_RECORDS_TO_SCRAPE = 10  # Set to a number to limit records, or None to scrape all
+MAX_RECORDS_TO_SCRAPE = 3  # Set to a number to limit records, or None to scrape all
+
+# Multi-page scraping configuration
+START_PAGE = 99  # First page to scrape
+END_PAGE = 100   # Last page to scrape (inclusive)
+SCRAPE_MULTIPLE_PAGES = True  # Set to True to scrape multiple pages, False to scrape single page
+RECORDS_PER_PAGE = None  # Set to a number to limit records per page, or None to scrape all
+
+# Retry configuration
+MAX_RETRIES = 3  # Maximum number of retries for failed entries
+RETRY_DELAY = 2  # Delay in seconds between retries
 
 class AUCDigitalCollectionsSeleniumScraper:
     def __init__(self, headless=True):
         self.base_url = BASE_URL
         self.search_url = SEARCH_URL
         self.all_data = []
+        self.failed_entries = []  # Track failed entries
+        self.current_id = 1  # Initialize ID counter
         
         chrome_options = Options()
         if headless:
@@ -46,6 +58,13 @@ class AUCDigitalCollectionsSeleniumScraper:
     def __del__(self):
         if hasattr(self, 'driver'):
             self.driver.quit()
+
+    def add_id_to_entry(self, entry_data):
+        """Add an ID to the entry data and increment the counter"""
+        if entry_data:
+            entry_data['id'] = self.current_id
+            self.current_id += 1
+        return entry_data
 
     def wait_for_page_load(self, timeout=20):
         try:
@@ -101,6 +120,37 @@ class AUCDigitalCollectionsSeleniumScraper:
         except Exception as e:
             print(f"Error getting entries from page {page_num}: {e}")
             return []
+
+    def retry_get_entries_from_page(self, page_num, max_retries=None, retry_delay=None):
+        """Get entries from a page with retry mechanism"""
+        if max_retries is None:
+            max_retries = MAX_RETRIES
+        if retry_delay is None:
+            retry_delay = RETRY_DELAY
+        
+        for attempt in range(max_retries + 1):
+            try:
+                print(f"Attempting to get entries from page {page_num} (attempt {attempt + 1}/{max_retries + 1})")
+                
+                entry_links = self.get_entries_from_page(page_num)
+                
+                if entry_links:
+                    if attempt > 0:
+                        print(f"✓ Successfully got entries from page {page_num} on retry attempt {attempt + 1}")
+                    return entry_links
+                else:
+                    print(f"✗ Attempt {attempt + 1} failed - no entries found on page {page_num}")
+                    
+            except Exception as e:
+                print(f"✗ Attempt {attempt + 1} failed with error: {e}")
+            
+            # If this wasn't the last attempt, wait before retrying
+            if attempt < max_retries:
+                print(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+        
+        print(f"✗ Failed to get entries from page {page_num} after {max_retries + 1} attempts")
+        return []
 
     def extract_initial_state(self, html_content):
         try:
@@ -190,6 +240,113 @@ class AUCDigitalCollectionsSeleniumScraper:
         ]
         
         return any(indicator in url_lower for indicator in image_indicators)
+
+    def retry_extract_description_data(self, entry_url, max_retries=None, retry_delay=None):
+        """Extract description data with retry mechanism"""
+        if max_retries is None:
+            max_retries = MAX_RETRIES
+        if retry_delay is None:
+            retry_delay = RETRY_DELAY
+        
+        for attempt in range(max_retries + 1):
+            try:
+                print(f"Attempting to scrape entry (attempt {attempt + 1}/{max_retries + 1}): {entry_url}")
+                
+                # Try to extract data
+                data = self.extract_description_data(entry_url)
+                
+                # Check if we got meaningful data (more than just an image URL)
+                if data and len(data) > 1:
+                    if attempt > 0:
+                        print(f"✓ Successfully scraped entry on retry attempt {attempt + 1}")
+                    return data
+                else:
+                    print(f"✗ Attempt {attempt + 1} failed - no meaningful data extracted")
+                    
+            except Exception as e:
+                print(f"✗ Attempt {attempt + 1} failed with error: {e}")
+            
+            # If this wasn't the last attempt, wait before retrying
+            if attempt < max_retries:
+                print(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+        
+        print(f"✗ Failed to scrape entry after {max_retries + 1} attempts: {entry_url}")
+        # Track failed entry
+        self.failed_entries.append({
+            'url': entry_url,
+            'attempts': max_retries + 1,
+            'timestamp': time.time()
+        })
+        return {}
+
+    def retry_failed_entries(self, failed_entries_file, max_retries=None, retry_delay=None):
+        """Retry scraping failed entries from a previous run"""
+        try:
+            with open(failed_entries_file, 'r', encoding='utf-8') as f:
+                failed_entries = json.load(f)
+            
+            print(f"Retrying {len(failed_entries)} failed entries...")
+            
+            successful_retries = 0
+            still_failed = []
+            
+            for i, failed_entry in enumerate(failed_entries):
+                url = failed_entry['url']
+                print(f"Retrying failed entry {i+1}/{len(failed_entries)}: {url}")
+                
+                # Try to scrape the entry again
+                entry_data = self.retry_extract_description_data(url, max_retries, retry_delay)
+                
+                if entry_data:
+                    entry_data = self.add_id_to_entry(entry_data)
+                    self.all_data.append(entry_data)
+                    successful_retries += 1
+                    title = entry_data.get('Title', 'No title')
+                    print(f"✓ Successfully retried entry: {title}")
+                else:
+                    still_failed.append(failed_entry)
+                    print(f"✗ Still failed after retry: {url}")
+                
+                time.sleep(1)
+            
+            print(f"\nRetry Summary:")
+            print(f"Successfully retried: {successful_retries}")
+            print(f"Still failed: {len(still_failed)}")
+            print(f"Retry success rate: {successful_retries/len(failed_entries)*100:.1f}%")
+            
+            # Save updated failed entries
+            if still_failed:
+                retry_failed_file = failed_entries_file.replace('.json', '_retry_failed.json')
+                with open(retry_failed_file, 'w', encoding='utf-8') as f:
+                    json.dump(still_failed, f, ensure_ascii=False, indent=2)
+                print(f"Updated failed entries saved to: {retry_failed_file}")
+            
+            return successful_retries, len(still_failed)
+            
+        except Exception as e:
+            print(f"Error retrying failed entries: {e}")
+            return 0, len(failed_entries)
+
+    def save_failed_entries(self, filename=None):
+        """Save failed entries to a JSON file"""
+        if not self.failed_entries:
+            print("No failed entries to save")
+            return
+        
+        if filename is None:
+            if SCRAPE_MULTIPLE_PAGES:
+                filename = f'failed_entries_pages_{START_PAGE}_to_{END_PAGE}.json'
+            else:
+                filename = f'failed_entries_page_{PAGE_TO_SCRAPE}.json'
+        
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(self.failed_entries, f, ensure_ascii=False, indent=2)
+            print(f"Failed entries saved to {filename}")
+            print(f"Total failed entries: {len(self.failed_entries)}")
+        except Exception as e:
+            print(f"Error saving failed entries to {filename}: {e}")
 
     def extract_description_data(self, entry_url):
         try:
@@ -495,12 +652,76 @@ class AUCDigitalCollectionsSeleniumScraper:
             print(f"Error extracting data from {entry_url}: {e}")
             return {}
 
-    def scrape_page(self):
+    def get_page_info(self, page_num):
+        """Get information about a specific page"""
         try:
-            print(f"Starting to scrape page {PAGE_TO_SCRAPE} of AUC Digital Collections with Selenium...")
+            page_url = f"{self.search_url}/page/{page_num}"
+            print(f"Checking page {page_num}: {page_url}")
+            self.driver.get(page_url)
+            
+            if not self.wait_for_page_load():
+                return {"page_num": page_num, "entries_found": 0, "status": "failed_to_load"}
+            
+            entry_links = self.get_entries_from_page(page_num)
+            return {
+                "page_num": page_num,
+                "entries_found": len(entry_links),
+                "status": "success",
+                "url": page_url
+            }
+        except Exception as e:
+            print(f"Error getting page info for page {page_num}: {e}")
+            return {"page_num": page_num, "entries_found": 0, "status": "error", "error": str(e)}
+
+    def validate_page_range(self, start_page, end_page):
+        """Validate the page range and return available pages"""
+        print(f"Validating page range {start_page} to {end_page}...")
+        available_pages = []
+        
+        for page_num in range(start_page, end_page + 1):
+            page_info = self.get_page_info(page_num)
+            if page_info["status"] == "success" and page_info["entries_found"] > 0:
+                available_pages.append(page_info)
+                print(f"Page {page_num}: {page_info['entries_found']} entries found")
+            else:
+                print(f"Page {page_num}: No entries found or failed to load")
+        
+        return available_pages
+
+    def scrape_with_validation(self, start_page=None, end_page=None, records_per_page=None):
+        """Scrape multiple pages with validation"""
+        if start_page is None:
+            start_page = START_PAGE
+        if end_page is None:
+            end_page = END_PAGE
+        if records_per_page is None:
+            records_per_page = RECORDS_PER_PAGE
+        
+        print(f"Validating pages {start_page} to {end_page} before scraping...")
+        available_pages = self.validate_page_range(start_page, end_page)
+        
+        if not available_pages:
+            print("No pages with entries found in the specified range.")
+            return
+        
+        print(f"Found {len(available_pages)} pages with entries. Starting to scrape...")
+        
+        # Update the range to only scrape available pages
+        page_nums = [page["page_num"] for page in available_pages]
+        self.scrape_multiple_pages(min(page_nums), max(page_nums), records_per_page)
+
+    def scrape_single_page(self, page_num=None):
+        """Scrape a single page"""
+        try:
+            if page_num is None:
+                page_num = PAGE_TO_SCRAPE
+            
+            print(f"Starting to scrape page {page_num} of AUC Digital Collections with Selenium...")
             entries_processed = 0
-            page_num = PAGE_TO_SCRAPE
-            entry_urls = self.get_entries_from_page(page_num)
+            failed_entries = 0
+            
+            # Use retry mechanism to get entries from page
+            entry_urls = self.retry_get_entries_from_page(page_num)
             print(f"Found {len(entry_urls)} entries on page {page_num}")
             
             # Limit the number of records if MAX_RECORDS_TO_SCRAPE is set
@@ -510,23 +731,129 @@ class AUCDigitalCollectionsSeleniumScraper:
             
             for i, entry_url in enumerate(entry_urls):
                 print(f"Scraping entry {i+1}/{len(entry_urls)} on page {page_num}: {entry_url}")
-                entry_data = self.extract_description_data(entry_url)
+                
+                # Use retry mechanism for each entry
+                entry_data = self.retry_extract_description_data(entry_url)
+                
                 if entry_data:
+                    entry_data = self.add_id_to_entry(entry_data)
                     self.all_data.append(entry_data)
                     entries_processed += 1
                     title = entry_data.get('Title', 'No title')
                     print(f"Successfully scraped entry {entries_processed}: {title}")
                 else:
-                    print(f"Failed to scrape entry: {entry_url}")
+                    failed_entries += 1
+                    print(f"Failed to scrape entry after all retries: {entry_url}")
+                
                 time.sleep(1)
-            print(f"Scraping completed. Total entries scraped: {len(self.all_data)}")
+            
+            print(f"Scraping completed for page {page_num}.")
+            print(f"Total entries scraped: {entries_processed}")
+            print(f"Failed entries: {failed_entries}")
+            if entries_processed + failed_entries > 0:
+                success_rate = entries_processed/(entries_processed+failed_entries)*100
+                print(f"Success rate: {success_rate:.1f}%")
+            
+        except Exception as e:
+            print(f"Error during scraping page {page_num}: {e}")
+
+    def scrape_multiple_pages(self, start_page=None, end_page=None, records_per_page=None):
+        """Scrape multiple pages"""
+        try:
+            if start_page is None:
+                start_page = START_PAGE
+            if end_page is None:
+                end_page = END_PAGE
+            if records_per_page is None:
+                records_per_page = RECORDS_PER_PAGE
+            
+            print(f"Starting to scrape pages {start_page} to {end_page} of AUC Digital Collections...")
+            total_entries_processed = 0
+            total_failed_entries = 0
+            
+            for page_num in range(start_page, end_page + 1):
+                print(f"\n{'='*50}")
+                print(f"Scraping page {page_num}/{end_page}")
+                print(f"{'='*50}")
+                
+                # Get entries for this page with retry mechanism
+                entry_urls = self.retry_get_entries_from_page(page_num)
+                print(f"Found {len(entry_urls)} entries on page {page_num}")
+                
+                # Limit records per page if specified
+                if records_per_page is not None and records_per_page > 0:
+                    entry_urls = entry_urls[:records_per_page]
+                    print(f"Limited to scraping {len(entry_urls)} entries per page (RECORDS_PER_PAGE = {records_per_page})")
+                
+                page_entries_processed = 0
+                page_failed_entries = 0
+                
+                for i, entry_url in enumerate(entry_urls):
+                    print(f"Scraping entry {i+1}/{len(entry_urls)} on page {page_num}: {entry_url}")
+                    
+                    # Use retry mechanism for each entry
+                    entry_data = self.retry_extract_description_data(entry_url)
+                    
+                    if entry_data:
+                        entry_data = self.add_id_to_entry(entry_data)
+                        self.all_data.append(entry_data)
+                        page_entries_processed += 1
+                        total_entries_processed += 1
+                        title = entry_data.get('Title', 'No title')
+                        print(f"Successfully scraped entry {total_entries_processed}: {title}")
+                    else:
+                        page_failed_entries += 1
+                        total_failed_entries += 1
+                        print(f"Failed to scrape entry after all retries: {entry_url}")
+                    
+                    time.sleep(1)
+                
+                print(f"Completed page {page_num}.")
+                print(f"Entries scraped on this page: {page_entries_processed}")
+                print(f"Failed entries on this page: {page_failed_entries}")
+                if page_entries_processed + page_failed_entries > 0:
+                    page_success_rate = page_entries_processed/(page_entries_processed+page_failed_entries)*100
+                    print(f"Page success rate: {page_success_rate:.1f}%")
+                print(f"Total entries scraped so far: {total_entries_processed}")
+                
+                # Add a small delay between pages to be respectful to the server
+                if page_num < end_page:
+                    print("Waiting 3 seconds before next page...")
+                    time.sleep(3)
+            
+            print(f"\n{'='*50}")
+            print(f"Multi-page scraping completed!")
+            print(f"Total pages scraped: {end_page - start_page + 1}")
+            print(f"Total entries scraped: {total_entries_processed}")
+            print(f"Total failed entries: {total_failed_entries}")
+            if total_entries_processed + total_failed_entries > 0:
+                overall_success_rate = total_entries_processed/(total_entries_processed+total_failed_entries)*100
+                print(f"Overall success rate: {overall_success_rate:.1f}%")
+            print(f"{'='*50}")
+            
+        except Exception as e:
+            print(f"Error during multi-page scraping: {e}")
+
+    def scrape_page(self):
+        """Main scraping method that handles both single and multi-page scraping"""
+        try:
+            if SCRAPE_MULTIPLE_PAGES:
+                self.scrape_multiple_pages()
+            else:
+                self.scrape_single_page()
         except Exception as e:
             print(f"Error during scraping: {e}")
         finally:
             self.driver.quit()
 
-    def save_to_json(self, filename=f'auc_digital_collection_page_{PAGE_TO_SCRAPE}.json'):
+    def save_to_json(self, filename=None):
         try:
+            if filename is None:
+                if SCRAPE_MULTIPLE_PAGES:
+                    filename = f'auc_digital_collection_pages_{START_PAGE}_to_{END_PAGE}.json'
+                else:
+                    filename = f'auc_digital_collection_page_{PAGE_TO_SCRAPE}.json'
+            
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.all_data, f, ensure_ascii=False, indent=2)
             print(f"Data saved to {filename}")
@@ -534,9 +861,62 @@ class AUCDigitalCollectionsSeleniumScraper:
             print(f"Error saving data to {filename}: {e}")
 
 def main():
-    scraper = AUCDigitalCollectionsSeleniumScraper(headless=True)
-    scraper.scrape_page()
-    scraper.save_to_json()
+    import argparse
+    
+    # Global variables for retry configuration
+    global MAX_RETRIES, RETRY_DELAY
+    
+    parser = argparse.ArgumentParser(description='Scrape AUC Digital Collections')
+    parser.add_argument('--single-page', type=int, help='Scrape a single specific page')
+    parser.add_argument('--start-page', type=int, default=START_PAGE, help='First page to scrape (default: 1)')
+    parser.add_argument('--end-page', type=int, default=END_PAGE, help='Last page to scrape (default: 10)')
+    parser.add_argument('--records-per-page', type=int, default=RECORDS_PER_PAGE, help='Limit records per page')
+    parser.add_argument('--validate-only', action='store_true', help='Only validate pages without scraping')
+    parser.add_argument('--headless', action='store_true', default=True, help='Run in headless mode')
+    parser.add_argument('--max-retries', type=int, default=MAX_RETRIES, help=f'Maximum retries for failed entries (default: {MAX_RETRIES})')
+    parser.add_argument('--retry-delay', type=int, default=RETRY_DELAY, help=f'Delay between retries in seconds (default: {RETRY_DELAY})')
+    parser.add_argument('--retry-failed', type=str, help='Retry failed entries from a JSON file')
+    
+    args = parser.parse_args()
+    
+    # Update retry configuration from command line arguments
+    MAX_RETRIES = args.max_retries
+    RETRY_DELAY = args.retry_delay
+    
+    scraper = AUCDigitalCollectionsSeleniumScraper(headless=args.headless)
+    
+    try:
+        if args.retry_failed:
+            # Retry failed entries from a previous run
+            print(f"Retrying failed entries from: {args.retry_failed}")
+            successful, still_failed = scraper.retry_failed_entries(args.retry_failed, args.max_retries, args.retry_delay)
+            if successful > 0:
+                scraper.save_to_json("retry_successful_entries.json")
+        elif args.single_page:
+            # Scrape a single specific page
+            print(f"Scraping single page: {args.single_page}")
+            scraper.scrape_single_page(args.single_page)
+        elif args.validate_only:
+            # Only validate pages
+            print("Validating pages only...")
+            available_pages = scraper.validate_page_range(args.start_page, args.end_page)
+            print(f"Validation complete. Found {len(available_pages)} pages with entries.")
+        else:
+            # Multi-page scraping
+            if SCRAPE_MULTIPLE_PAGES:
+                print(f"Scraping pages {args.start_page} to {args.end_page}")
+                scraper.scrape_multiple_pages(args.start_page, args.end_page, args.records_per_page)
+            else:
+                scraper.scrape_single_page()
+        
+        if not args.validate_only and not args.retry_failed:
+            scraper.save_to_json()
+            scraper.save_failed_entries()
+            
+    except Exception as e:
+        print(f"Error in main: {e}")
+    finally:
+        scraper.driver.quit()
 
 if __name__ == "__main__":
     main() 
