@@ -42,18 +42,21 @@ The AUC Library seeks to promote its unique collections through engaging short-f
 
 ## 🎯 Features
 
-- ✅ Generate full video scripts from library collection metadata
-- 🌍 **Bilingual support:** Generates parallel English and Arabic scripts
-- 🏛️ Engaging narratives to bring historical artifacts to life
-- 🌐 React-based web interface for ease of use
-- 📁 Batch processing for multiple collection items
-- 📜 Export scripts for video production workflows
+- ✅ **Interactive Gallery Interface**: Browse library collections with rich metadata display
+- 🔍 **Advanced Search & Filtering**: Search by title, creator, call number, or date with year-range filtering
+- 📊 **Smart Sorting**: Sort items by name, creator, or year (ascending/descending)
+- 🌍 **Enhanced Bilingual Support**: Utilizes Arabic titles and creator names for authentic translations
+- 🏛️ **Rich Metadata Processing**: Scripts incorporate comprehensive academic metadata (publishers, subjects, collections, rights)
+- 📁 **Batch Processing**: Process multiple items with real-time progress tracking
+- 🎬 **Quality Control**: Built-in validation and format preservation for Arabic translations
+- 🌐 **Modern React Interface**: Responsive design with loading indicators and user feedback
+- 📜 **Export-Ready Scripts**: Generate production-ready bilingual video scripts
 
 ## 🛠️ Technologies Used
 
 | Category           | Tools                                      |
 |--------------------|--------------------------------------------|
-| Language Models    | [Ollama](https://ollama.ai/) + Llama3.2:3B |
+| Language Models    | [Ollama](https://ollama.ai/) + Llama3.2:8B |
 | Translation        | Helsinki-NLP Arabic translation models      |
 | Backend            | Python, FastAPI                            |
 | Frontend           | React.js                                   |
@@ -73,8 +76,10 @@ The AUC Library seeks to promote its unique collections through engaging short-f
 
 1. Install [Ollama](https://ollama.ai/) and pull the required Llama model:
 ```bash
-ollama pull llama3.2:3b
+ollama pull llama3:8b
 ```
+
+**Note:** The system is configured for `llama3:8b`. You can use `llama3.2:3b` by updating the model name in `AIScript.py`.
 
 2. Install Python dependencies:
 ```bash
@@ -83,12 +88,13 @@ pip install -r requirements.txt
 
 3. Start the FastAPI backend server:
 ```bash
-uvicorn main:app --reload
+python main.py
 ```
+
+The backend will be available at `http://localhost:8002`.
 
 4. Install frontend dependencies and start the React development server:
 ```bash
-cd frontend
 npm install
 npm start
 ```
@@ -97,6 +103,35 @@ npm start
 ```
 http://localhost:3000
 ```
+
+## 🆕 New Features & Enhancements
+
+### **Gallery Interface**
+- Interactive library collection browser
+- Rich metadata display including Arabic titles, publishers, and institutional information
+- Responsive grid layout with detailed item cards
+
+### **Search & Filter Capabilities**
+- **Search**: Find items by title, creator, call number, or date
+- **Filter by Year**: Use dropdown menus to filter by publication year range
+- **Sort Options**: Sort by name (A-Z), creator (A-Z), year (oldest/newest first)
+- **Clear Filters**: Reset all filters with one click
+
+### **Enhanced Script Generation**
+- **Rich Metadata Usage**: Scripts now incorporate comprehensive metadata including:
+  - Arabic titles and creator names for authentic bilingual content
+  - Publisher and publication details for historical context
+  - Subject classifications and academic context
+  - Collection and institutional information
+  - Rights, licensing, and catalog information
+- **Batch Processing**: Select multiple items and process them with real-time progress tracking
+- **Progress Indicators**: Visual feedback during script generation with completion notifications
+
+### **Improved User Experience**
+- Loading indicators and disabled states during processing
+- Auto-scroll to results section
+- Progress counters for batch operations ("Processing... (2/5)")
+- Completion messages with visual feedback
 
 ## 📅 Work Plan
 
