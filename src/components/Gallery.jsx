@@ -105,16 +105,24 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
         const itemYear = parseInt(item.date);
         if (isNaN(itemYear)) return false;
         
-        const fromYear = dateFilter.from ? parseInt(dateFilter.from) : -Infinity;
-        const toYear = dateFilter.to ? parseInt(dateFilter.to) : Infinity;
+        const fromYear = dateFilter.from ? parseInt(dateFilter.from) : null;
+        const toYear = dateFilter.to ? parseInt(dateFilter.to) : null;
         
-        return itemYear >= fromYear && itemYear <= toYear;
+        if (fromYear && toYear) {
+          return itemYear >= fromYear && itemYear <= toYear;
+        } else if (fromYear) {
+          return itemYear >= fromYear;
+        } else if (toYear) {
+          return itemYear <= toYear;
+        }
+        return true;
       });
     }
 
-    const sortedAndFilteredItems = sortItems(filtered);
-    setFilteredItems(sortedAndFilteredItems);
-  }, [searchQuery, searchFilter, dateFilter, items, sortBy]);
+    // Apply sorting
+    const sortedItems = sortItems(filtered);
+    setFilteredItems(sortedItems);
+  }, [items, searchQuery, searchFilter, dateFilter, sortBy]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -133,179 +141,151 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
 
   const clearAllFilters = () => {
     setSearchQuery("");
+    setSearchFilter("all");
     setDateFilter({ from: "", to: "" });
     setSortBy("name");
   };
 
   const sortItems = (items) => {
-    const sortedItems = [...items];
-    
-    switch (sortBy) {
-      case "name":
-        return sortedItems.sort((a, b) => 
-          (a.title || "").localeCompare(b.title || "")
-        );
-      case "creator":
-        return sortedItems.sort((a, b) => 
-          (a.creator || "").localeCompare(b.creator || "")
-        );
-      case "year":
-        return sortedItems.sort((a, b) => {
-          const yearA = parseInt(a.date) || 0;
-          const yearB = parseInt(b.date) || 0;
-          return yearA - yearB;
-        });
-      case "year_desc":
-        return sortedItems.sort((a, b) => {
-          const yearA = parseInt(a.date) || 0;
-          const yearB = parseInt(b.date) || 0;
-          return yearB - yearA;
-        });
-      default:
-        return sortedItems;
-    }
+    return [...items].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.title.localeCompare(b.title);
+        case "creator":
+          return a.creator.localeCompare(b.creator);
+        case "year":
+          return parseInt(a.date) - parseInt(b.date);
+        case "year_desc":
+          return parseInt(b.date) - parseInt(a.date);
+        default:
+          return 0;
+      }
+    });
   };
 
   const handleItemClick = (item) => {
-    if (selectedItems.find(selected => selected.id === item.id)) {
-      // Remove from selection
-      setSelectedItems(selectedItems.filter(selected => selected.id !== item.id));
-    } else {
-      // Add to selection
-      setSelectedItems([...selectedItems, item]);
-    }
+    onItemSelect(item);
   };
 
   const handleSingleSelect = (item) => {
     setProcessingItem(item.id);
-    // Scroll to show loading state
+    
+    // Simulate processing delay
     setTimeout(() => {
-      const element = document.getElementById('script-results');
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-    onItemSelect(item);
+      onItemSelect(item);
+      setProcessingItem(null);
+    }, 1000);
   };
 
   const handleBatchProcess = () => {
-    if (selectedItems.length > 0) {
-      setBatchProcessing(true);
-      setBatchProgress({ current: 0, total: selectedItems.length });
-      // Scroll to show batch processing
-      setTimeout(() => {
-        const element = document.getElementById('batch-results');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-      onBatchSelect(selectedItems);
+    if (selectedItems.length === 0) {
+      alert("Please select at least one item to process.");
+      return;
     }
+    
+    const selectedItemData = selectedItems.map(id => 
+      filteredItems.find(item => item.id === id)
+    ).filter(Boolean);
+    
+    onBatchSelect(selectedItemData);
+    setSelectedItems([]);
+  };
+
+  const toggleItemSelection = (itemId) => {
+    setSelectedItems(prev => {
+      if (prev.includes(itemId)) {
+        return prev.filter(id => id !== itemId);
+      } else {
+        return [...prev, itemId];
+      }
+    });
   };
 
   if (loading) {
     return (
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-4xl mx-auto">
-        <h2 className="text-xl font-bold mb-4">Library Collection</h2>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading library items...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-calmRed"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-4xl mx-auto">
-        <h2 className="text-xl font-bold mb-4">Library Collection</h2>
-        <div className="text-center py-8">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={loadGallery}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="text-center text-red-600 p-4">
+        {error}
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-4xl mx-auto">
-      <h2 className="text-xl font-bold mb-4">Library Collection</h2>
-      <p className="text-gray-600 mb-4">Select items from the library collection to generate video scripts:</p>
-      
-      {/* Search Controls */}
-      <div className="mb-6 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
+    <div className="space-y-6">
+      {/* Search and Filter Controls */}
+      <div className="bg-offWhite p-6 rounded-lg shadow-md">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
             <input
               type="text"
-              placeholder="Search library items..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="Search items..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent"
             />
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-            <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              Search in:
-            </div>
+
+          {/* Search Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search By
+            </label>
             <select
               value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent"
             >
-              <option value="all">Search All Fields</option>
-              <option value="title">Title Only</option>
-              <option value="creator">Creator Only</option>
-              <option value="call_number">Call Number Only</option>
-              <option value="date">Date Only</option>
+              <option value="all">All Fields</option>
+              <option value="title">Title</option>
+              <option value="creator">Creator</option>
+              <option value="call_number">Call Number</option>
+              <option value="date">Date</option>
             </select>
           </div>
-        </div>
-        
-        {/* Date Range Filter, Sort, and Clear Button */}
-        <div className="flex flex-col md:flex-row gap-3 items-start md:items-center flex-wrap">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-            <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              Filter by Year:
-            </div>
-            <div className="flex items-center gap-3">
-              <select
+
+          {/* Date Range */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Year Range
+            </label>
+            <div className="flex space-x-2">
+              <input
+                type="number"
+                placeholder="From"
                 value={dateFilter.from}
-                onChange={(e) => handleDateFilterChange('from', e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
-              >
-                <option value="">From Year</option>
-                {availableYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-              <span className="text-gray-500 font-medium">to</span>
-              <select
+                onChange={(e) => handleDateFilterChange("from", e.target.value)}
+                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent"
+              />
+              <input
+                type="number"
+                placeholder="To"
                 value={dateFilter.to}
-                onChange={(e) => handleDateFilterChange('to', e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[120px]"
-              >
-                <option value="">To Year</option>
-                {availableYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+                onChange={(e) => handleDateFilterChange("to", e.target.value)}
+                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent"
+              />
             </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-            <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              Sort by:
-            </div>
+
+          {/* Sort */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sort By
+            </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm min-w-[140px]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent"
             >
               <option value="name">Name (A-Z)</option>
               <option value="creator">Creator (A-Z)</option>
@@ -313,150 +293,132 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
               <option value="year_desc">Year (Newest First)</option>
             </select>
           </div>
-          
-          {/* Clear Filters Button */}
+        </div>
+
+        {/* Clear Filters Button */}
+        <div className="mt-4 flex justify-between items-center">
           <button
             onClick={clearAllFilters}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap ml-auto"
+            className="px-4 py-2 text-sm text-gray-600 hover:text-calmRed transition-colors"
           >
             Clear All Filters
           </button>
+          
+          {/* Batch Processing Button */}
+          {selectedItems.length > 0 && (
+            <button
+              onClick={handleBatchProcess}
+              disabled={batchProcessing}
+              className="bg-calmRed text-white px-6 py-2 rounded-md hover:shadow-lg transition duration-200 disabled:opacity-50"
+            >
+              {batchProcessing ? (
+                <span className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Processing... ({batchProgress.current}/{batchProgress.total})</span>
+                </span>
+              ) : (
+                `Process ${selectedItems.length} Items`
+              )}
+            </button>
+          )}
         </div>
-        
-        {/* Search Results Info */}
-        {(searchQuery || dateFilter.from || dateFilter.to) && (
-          <div className="text-sm text-gray-600 mb-4">
-            Showing {filteredItems.length} of {items.length} items
-            {searchQuery && (
-              <span className="ml-2">
-                • Searching for "{searchQuery}" in {searchFilter === "all" ? "all fields" : searchFilter}
-              </span>
-            )}
-            {(dateFilter.from || dateFilter.to) && (
-              <span className="ml-2">
-                • Date range: {dateFilter.from || "start"} to {dateFilter.to || "end"}
-              </span>
-            )}
-            {sortBy !== "name" && (
-              <span className="ml-2">
-                • Sorted by {sortBy === "creator" ? "creator" : sortBy === "year" ? "year (oldest first)" : "year (newest first)"}
-              </span>
-            )}
-          </div>
-        )}
       </div>
-      
-      {/* Batch Processing Controls */}
-      {selectedItems.length > 0 && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <span className="text-blue-800 font-medium">
-              {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
-            </span>
-            <div className="flex gap-2 sm:ml-auto">
+
+      {/* Results Count */}
+      <div className="text-center">
+        <p className="text-gray-600">
+          Showing {filteredItems.length} of {items.length} items
+        </p>
+      </div>
+
+      {/* Gallery Grid */}
+      <div className="flex flex-wrap justify-center gap-6">
+        {filteredItems.map((item) => (
+          <div
+            key={item.id}
+            className={`w-64 h-80 p-4 bg-white shadow-lg rounded-lg flex flex-col m-4 transition-all duration-200 hover:shadow-xl ${
+              selectedItems.includes(item.id) ? 'ring-2 ring-calmRed' : ''
+            }`}
+          >
+            {/* Image Placeholder */}
+            <div className="flex-1 relative bg-gray-100 rounded overflow-hidden">
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <div className="text-4xl mb-2">📚</div>
+                  <div className="text-xs">Library Item</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Item Info */}
+            <div className="mt-3 flex-1">
+              <h3 className="font-semibold text-sm text-gray-800 line-clamp-2 mb-1">
+                {item.title}
+              </h3>
+              <p className="text-xs text-gray-600 mb-1">
+                <span className="font-medium">Creator:</span> {item.creator}
+              </p>
+              <p className="text-xs text-gray-600 mb-1">
+                <span className="font-medium">Date:</span> {item.date}
+              </p>
+              <p className="text-xs text-gray-600 mb-2">
+                <span className="font-medium">Call #:</span> {item.call_number}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-auto space-y-2">
+              {selectedItems.includes(item.id) ? (
+                <button
+                  onClick={() => toggleItemSelection(item.id)}
+                  className="w-full bg-gray-400 text-white text-sm py-2 rounded transition-colors"
+                >
+                  Selected
+                </button>
+              ) : (
+                <button
+                  onClick={() => toggleItemSelection(item.id)}
+                  className="w-full bg-calmRed text-white text-sm py-2 rounded hover:bg-opacity-90 transition-colors"
+                >
+                  Select Item
+                </button>
+              )}
+              
               <button
-                onClick={() => setSelectedItems([])}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => handleSingleSelect(item)}
+                disabled={processingItem === item.id}
+                className="w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                Clear Selection
-              </button>
-              <button
-                onClick={handleBatchProcess}
-                disabled={batchProcessing}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
-              >
-                {batchProcessing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Processing... ({batchProgress.current}/{batchProgress.total})
-                  </>
+                {processingItem === item.id ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Generating...</span>
+                  </span>
                 ) : (
-                  `Process ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`
+                  "Generate Script"
                 )}
               </button>
             </div>
           </div>
-        </div>
-      )}
-      
-      <div className="space-y-3">
-        {filteredItems.map((item) => {
-          const isSelected = selectedItems.find(selected => selected.id === item.id);
-          return (
-            <div
-              key={item.id}
-              className={`border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
-                isSelected 
-                  ? 'bg-blue-50 border-blue-300 shadow-md' 
-                  : 'bg-gray-50 hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleItemClick(item)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <h3 className="font-semibold text-lg text-blue-800">{item.title}</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600 mb-2">
-                    <div><span className="font-medium">Creator:</span> {item.creator}</div>
-                    <div><span className="font-medium">Date:</span> {item.date}</div>
-                    <div><span className="font-medium">Call Number:</span> {item.call_number}</div>
-                  </div>
-                  <p className="text-sm text-gray-700">{item.description}</p>
-                </div>
-                <div className="ml-4 space-y-2">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSingleSelect(item);
-                    }}
-                    disabled={processingItem === item.id}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {processingItem === item.id ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Processing...
-                      </>
-                    ) : processingComplete && processingItem === null ? (
-                      <>
-                        <div className="text-green-600 flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Completed!
-                        </div>
-                      </>
-                    ) : (
-                      'Generate Script'
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        ))}
       </div>
-      
-      {items.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-600">No library items available.</p>
+
+      {/* Processing Complete Message */}
+      {processingComplete && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg">
+          Script generated successfully!
         </div>
       )}
-      
-      {items.length > 0 && filteredItems.length === 0 && searchQuery && (
-        <div className="text-center py-8">
-          <p className="text-gray-600">No items found matching your search criteria.</p>
+
+      {/* No Results */}
+      {filteredItems.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No items found matching your criteria.</p>
           <button
             onClick={clearAllFilters}
-            className="mt-2 text-blue-600 hover:text-blue-800 underline"
+            className="mt-4 px-4 py-2 bg-calmRed text-white rounded-md hover:bg-opacity-90 transition-colors"
           >
-            Clear all filters
+            Clear Filters
           </button>
         </div>
       )}

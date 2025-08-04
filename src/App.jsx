@@ -93,85 +93,96 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-2xl font-bold mb-2 text-center">AI Video Script Generator</h1>
-      <p className="text-center mb-6">{apiStatus}</p>
-
-      {/* Mode Toggle */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-white rounded-lg p-1 shadow-md">
-          <button
-            onClick={() => setMode("gallery")}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              mode === "gallery"
-                ? "bg-blue-600 text-white"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            📚 Library Collection
-          </button>
-          <button
-            onClick={() => setMode("manual")}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              mode === "manual"
-                ? "bg-blue-600 text-white"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            ✏️ Manual Entry
-          </button>
+    <div className="min-h-screen bg-lightBeige p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-gray-800">AI Video Script Generator</h1>
+          <p className="text-gray-600">{apiStatus}</p>
         </div>
-      </div>
 
-      {/* Content */}
-      {mode === "gallery" && (
-        <Gallery 
-          onItemSelect={handleItemSelect} 
-          onBatchSelect={handleBatchSelect}
-        />
-      )}
-      
-      {mode === "manual" && (
-        <UploadForm 
-          onResult={handleManualSubmit}
-          prefillData={selectedItem}
-        />
-      )}
-      
-      {/* Single Result */}
-      {result && (
-        <div id="script-results" className="mt-6">
-          <h2 className="text-xl font-bold mb-4 text-center">Generated Script</h2>
-          <ScriptViewer result={result} />
-        </div>
-      )}
-      
-      {/* Batch Results */}
-      {batchResults.length > 0 && (
-        <div id="batch-results" className="mt-6">
-          <h2 className="text-xl font-bold mb-4 text-center">Batch Processing Results</h2>
-          {batchProcessing && (
-            <div className="text-center mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Processing items...</p>
-            </div>
-          )}
-          <div className="space-y-4">
-            {batchResults.map((batchResult, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold text-lg mb-2 text-blue-800">
-                  {batchResult.item.title}
-                </h3>
-                {batchResult.result.error ? (
-                  <p className="text-red-600">Error: {batchResult.result.error}</p>
-                ) : (
-                  <ScriptViewer result={batchResult.result} />
-                )}
-              </div>
-            ))}
+        {/* Mode Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-offWhite rounded-lg p-1 shadow-md">
+            <button
+              onClick={() => setMode("gallery")}
+              className={`px-6 py-3 rounded-md transition-all duration-200 font-medium ${
+                mode === "gallery"
+                  ? "bg-calmRed text-white shadow-lg"
+                  : "text-gray-600 hover:text-calmRed"
+              }`}
+            >
+              📚 Library Collection
+            </button>
+            <button
+              onClick={() => setMode("manual")}
+              className={`px-6 py-3 rounded-md transition-all duration-200 font-medium ${
+                mode === "manual"
+                  ? "bg-calmRed text-white shadow-lg"
+                  : "text-gray-600 hover:text-calmRed"
+              }`}
+            >
+              ✏️ Manual Entry
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Content */}
+        {mode === "gallery" && (
+          <Gallery 
+            onItemSelect={handleItemSelect} 
+            onBatchSelect={handleBatchSelect}
+          />
+        )}
+        
+        {mode === "manual" && (
+          <div className="bg-offWhite rounded-lg shadow-md p-6">
+            <UploadForm 
+              onResult={handleManualSubmit}
+              prefillData={selectedItem}
+            />
+          </div>
+        )}
+        
+        {/* Single Result */}
+        {result && (
+          <div id="script-results" className="mt-8">
+            <div className="bg-offWhite rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold mb-4 text-center text-gray-800">Generated Script</h2>
+              <ScriptViewer result={result} />
+            </div>
+          </div>
+        )}
+        
+        {/* Batch Results */}
+        {batchResults.length > 0 && (
+          <div id="batch-results" className="mt-8">
+            <div className="bg-offWhite rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold mb-4 text-center text-gray-800">Batch Processing Results</h2>
+              {batchProcessing && (
+                <div className="text-center mb-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-calmRed mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Processing items...</p>
+                </div>
+              )}
+              <div className="space-y-6">
+                {batchResults.map((batchResult, index) => (
+                  <div key={index} className="bg-white p-4 rounded-lg shadow-md">
+                    <h3 className="font-semibold text-lg mb-2 text-calmRed">
+                      {batchResult.item.title}
+                    </h3>
+                    {batchResult.result.error ? (
+                      <p className="text-red-600">Error: {batchResult.result.error}</p>
+                    ) : (
+                      <ScriptViewer result={batchResult.result} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
