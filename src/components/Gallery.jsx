@@ -341,7 +341,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
             }`}
           >
             {/* Image Placeholder */}
-            <div className="flex-1 relative bg-gray-100 rounded overflow-hidden">
+            <div className="flex-1 relative bg-gray-100 rounded overflow-hidden image-placeholder">
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center text-gray-500">
                   <div className="text-4xl mb-2">📚</div>
@@ -350,8 +350,8 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
               </div>
             </div>
 
-            {/* Item Info */}
-            <div className="mt-3 flex-1">
+            {/* Item Info - Scrollable */}
+            <div className="mt-3 flex-1 overflow-y-auto max-h-24">
               <h3 className="font-semibold text-sm text-gray-800 line-clamp-2 mb-1">
                 {item.title}
               </h3>
@@ -387,7 +387,7 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
               <button
                 onClick={() => handleSingleSelect(item)}
                 disabled={processingItem === item.id}
-                className="w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="w-full bg-calmRed text-white text-sm py-2 rounded hover:bg-opacity-90 transition-colors disabled:opacity-50"
               >
                 {processingItem === item.id ? (
                   <span className="flex items-center justify-center space-x-2">
