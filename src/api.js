@@ -7,11 +7,8 @@ export const healthCheck = async () => {
   return response.data;
 };
 
-export const generateScript = async (artifactType, metadata) => {
-  const response = await axios.post(`${API_BASE_URL}/generate-script`, {
-    artifact_type: artifactType,
-    metadata: metadata,
-  });
+export const generateScript = async (requestData) => {
+  const response = await axios.post(`${API_BASE_URL}/generate-script`, requestData);
   return response.data;
 };
 

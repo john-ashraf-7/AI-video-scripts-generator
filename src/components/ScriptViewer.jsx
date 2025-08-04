@@ -4,28 +4,65 @@ export default function ScriptViewer({ result }) {
   if (!result) return null;
 
   return (
-    <div className="bg-gray-100 p-4 rounded-2xl shadow-md w-full max-w-3xl mx-auto mt-5">
-      <h2 className="text-lg font-bold mb-2">Generated Script</h2>
-      <p className="text-sm text-gray-500 mb-3">
-        QC Status: {result.qc_passed ? "✅ Passed" : "❌ Failed"} - {result.qc_message}
-      </p>
+    <div className="space-y-6">
+      {/* Quality Control Status */}
+      {result.qc_passed !== undefined && (
+        <div className={`p-4 rounded-lg ${
+          result.qc_passed 
+            ? 'bg-green-50 border border-green-200' 
+            : 'bg-red-50 border border-red-200'
+        }`}>
+          <div className="flex items-center space-x-2">
+            <div className={`w-4 h-4 rounded-full ${
+              result.qc_passed ? 'bg-green-500' : 'bg-red-500'
+            }`}></div>
+            <span className={`font-medium ${
+              result.qc_passed ? 'text-green-800' : 'text-red-800'
+            }`}>
+              Quality Control: {result.qc_passed ? 'PASSED' : 'FAILED'}
+            </span>
+          </div>
+          {result.qc_message && (
+            <p className={`text-sm mt-2 ${
+              result.qc_passed ? 'text-green-700' : 'text-red-700'
+            }`}>
+              {result.qc_message}
+            </p>
+          )}
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h3 className="font-semibold mb-2">English</h3>
-          <div className="p-3 bg-white border rounded max-h-96 overflow-y-auto">
-            <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed">{result.english_script}</pre>
+      {/* English Script */}
+      {result.english_script && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4 text-calmRed">English Script</h3>
+          <div className="prose max-w-none">
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 bg-gray-50 p-4 rounded border">
+              {result.english_script}
+            </pre>
           </div>
         </div>
-        {result.arabic_translation_refined && (
-          <div>
-            <h3 className="font-semibold mb-2">Arabic</h3>
-            <div className="p-3 bg-white border rounded max-h-96 overflow-y-auto">
-              <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed" dir="rtl">{result.arabic_translation_refined}</pre>
-            </div>
+      )}
+
+      {/* Arabic Translation */}
+      {result.arabic_translation_refined && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4 text-calmRed">Arabic Translation</h3>
+          <div className="prose max-w-none">
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 bg-gray-50 p-4 rounded border" dir="rtl">
+              {result.arabic_translation_refined}
+            </pre>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {result.error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-2 text-red-800">Error</h3>
+          <p className="text-red-700">{result.error}</p>
+        </div>
+      )}
     </div>
   );
 }
