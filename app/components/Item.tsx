@@ -1,18 +1,25 @@
-// import { useState } from 'react';
 'use client';
+// import { useState } from 'react';
+import Link from 'next/link';
 export default function Item() {
     // const [isActive, setIsActive] = useState(true);
     
     return(
-        <div className="w-64 h-80 p-4 bg-white shadow rounded-lg flex flex-col m-4">
-            <div className="flex-1 relative">
+        <div className="w-90 h-120 p-4 bg-darkBeige shadow rounded-lg flex flex-col m-4 hover:">
+            <div className="relative group overflow-hidden shadow-lg cursor-pointer flex-1 min-h-0 mx-4">
                 <img 
                     src="https://digitalcollections.aucegypt.edu/iiif/2/p15795coll19:30192/full/730,/0/default.jpg" 
                     alt="Item Image" 
-                    className="w-full h-full object-cover rounded"
+                    className="w-full h-full object-contain rounded"
                 />
+                <Link href="Record/id" className="absolute rounded inset-0 bg-black opacity-0 group-hover:opacity-50 transition duration-300 flex items-center justify-center">
+                    <span className="text-white text-lg font-semibold opacity-0 group-hover:opacity-100 transition duration-300">More Details</span>
+                </Link>
             </div>
-            <button className="mt-auto w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700 transition"
+            <div className="flex-shrink-0 p-2">
+                <h2 className="text-lg font-semibold">Essai sur la province romaine d'Égypte depuis la conquête jusqu'à Dioclétien : étude d'organisation politique et administrative</h2>
+            </div>
+            <button className="cursor-pointer flex-shrink-0 w-full bg-lightBeige text-black text-sm py-2 rounded hover:bg-offWhite transition"
             onClick={() => {
                 // if (isActive) {
                 //     onSelect(1); // Increment the selected item count
