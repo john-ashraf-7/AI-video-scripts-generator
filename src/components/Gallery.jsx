@@ -183,6 +183,10 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
       return;
     }
     
+    // Start batch processing immediately with visual feedback
+    setBatchProcessing(true);
+    setBatchProgress({ current: 0, total: selectedItems.length });
+    
     const selectedItemData = selectedItems.map(id => 
       filteredItems.find(item => item.id === id)
     ).filter(Boolean);
@@ -323,6 +327,29 @@ export default function Gallery({ onItemSelect, onBatchSelect }) {
           )}
         </div>
       </div>
+
+      {/* Batch Processing Progress Bar */}
+      {batchProcessing && (
+        <div className="bg-offWhite p-4 rounded-lg shadow-md">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">
+              Processing {batchProgress.total} items...
+            </span>
+            <span className="text-sm text-gray-500">
+              {batchProgress.current} of {batchProgress.total}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-calmRed h-2 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+            ></div>
+          </div>
+          <div className="mt-2 text-xs text-gray-500 text-center">
+            {batchProgress.current > 0 ? 'Generating scripts...' : 'Starting batch processing...'}
+          </div>
+        </div>
+      )}
 
       {/* Results Count */}
       <div className="text-center">

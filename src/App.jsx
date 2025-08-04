@@ -44,7 +44,7 @@ function App() {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       
-      // Update progress at start of processing this item
+      // Update progress immediately at start of processing this item
       window.dispatchEvent(new CustomEvent('updateBatchProgress', {
         detail: { current: i + 1, total: items.length }
       }));
