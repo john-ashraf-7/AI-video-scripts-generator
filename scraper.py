@@ -22,18 +22,18 @@ SEARCH_URL = f"{BASE_URL}/digital/search"
 OUTFILE = pathlib.Path("auc_digital_selenium_page.json")
 
 # Configuration: Change this to scrape different pages
-PAGE_TO_SCRAPE = 7  # Change this number to scrape a different page
-MAX_RECORDS_TO_SCRAPE = 3  # Set to a number to limit records, or None to scrape all
+PAGE_TO_SCRAPE = None  # Disabled because we scrape multiple pages.
+MAX_RECORDS_TO_SCRAPE = None  # Set to a number to limit records, or None to scrape all
 
 # Multi-page scraping configuration
-START_PAGE = 99  # First page to scrape
+START_PAGE = 1  # First page to scrape
 END_PAGE = 100   # Last page to scrape (inclusive)
 SCRAPE_MULTIPLE_PAGES = True  # Set to True to scrape multiple pages, False to scrape single page
 RECORDS_PER_PAGE = None  # Set to a number to limit records per page, or None to scrape all
 
 # Retry configuration
-MAX_RETRIES = 3  # Maximum number of retries for failed entries
-RETRY_DELAY = 2  # Delay in seconds between retries
+MAX_RETRIES = 4  # Maximum number of retries for failed entries
+RETRY_DELAY = 3  # Delay in seconds between retries
 
 class AUCDigitalCollectionsSeleniumScraper:
     def __init__(self, headless=True):
