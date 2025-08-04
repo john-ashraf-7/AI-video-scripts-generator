@@ -97,7 +97,7 @@ function App() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-gray-800">AI Video Script Generator</h1>
+          <h1 className="text-3xl font-bold mb-2 text-gray-800">Welcome to the AI Video Script Generator</h1>
           <p className="text-gray-600">{apiStatus}</p>
         </div>
 
