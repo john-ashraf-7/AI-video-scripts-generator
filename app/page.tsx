@@ -16,12 +16,12 @@ export default async function Home() {
   return (
     <div>
       <h1>Welcome to the AI Video Script Generator</h1>
-      <div className="flex flex-wrap justify-center">
+      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
         {items.map((item: {id:number}) => (
           <Item key={item.id} />
         ))}
       </div>
-      <GenerateButton className="" />
+      <GenerateButton />
     </div>
   );
 }
