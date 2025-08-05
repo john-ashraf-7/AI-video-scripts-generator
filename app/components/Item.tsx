@@ -1,14 +1,20 @@
 'use client';
 // import { useState } from 'react';
 import Link from 'next/link';
-export default function Item() {
+import {GalleryItem} from '../../src/api';
+
+export default function Item({item}: {item: GalleryItem}) {
     // const [isActive, setIsActive] = useState(true);
-    
+    let ImageURL = item['Image URL'];
+    if (item.Title.includes("أغنية")) {
+        ImageURL="/songs.png"
+    }
+
     return(
         <div className="w-90 h-120 p-4 bg-darkBeige shadow rounded-lg flex flex-col m-4 hover:">
             <div className="relative group overflow-hidden shadow-lg cursor-pointer flex-1 min-h-0 mx-4">
                 <img 
-                    src="https://digitalcollections.aucegypt.edu/iiif/2/p15795coll19:30192/full/730,/0/default.jpg" 
+                    src={ImageURL}    
                     alt="Item Image" 
                     className="w-full h-full object-contain rounded"
                 />
@@ -17,7 +23,7 @@ export default function Item() {
                 </Link>
             </div>
             <div className="flex-shrink-0 p-2">
-                <h2 className="text-lg font-semibold">Essai sur la province romaine d'Égypte depuis la conquête jusqu'à Dioclétien : étude d'organisation politique et administrative</h2>
+                <h2 className="text-lg font-semibold">{item.Title}</h2>
             </div>
             <button className="cursor-pointer flex-shrink-0 w-full bg-lightBeige text-black text-sm py-2 rounded hover:bg-offWhite transition"
             onClick={() => {
