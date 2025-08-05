@@ -180,6 +180,55 @@ export const getGallery = async (): Promise<GalleryResponse> => {
   }
 };
 
+
+export const getSingleBook = async (id: string): Promise<GalleryItem> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/gallery/${id}`);
+    if (!response.ok) {
+      let errorMessage = 'Failed to load book details';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    const data: GalleryItem = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`Book loading failed: ${String(error)}`);
+  }
+};
+
+export const getGalleryPage = async (page: number, limit: number): Promise<GalleryResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/gallery?page=${page}&limit=${limit}`);
+    
+    if (!response.ok) {
+      let errorMessage = 'Failed to load gallery page';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    
+    const data: GalleryResponse = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`Gallery page loading failed: ${String(error)}`);
+  }
+};
+
 /**
  * Export types for use in other components
  */

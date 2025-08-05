@@ -6,6 +6,7 @@ import uvicorn
 import json
 import re
 from AIScript import ScriptGenerator
+import motor
 
 app = FastAPI(title="AI Video Script Generator API")
 
@@ -17,6 +18,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+db_password = ""
+DATABASE_URL = f"mongodb+srv://johnashraf:{db_password}@cluster0.rtcxvzm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+client = motor.motor_asyncio.AsyncIOMotorClient(DATABASE_URL)
+# TODO: change the database name
+db = client.get_database("college")
+student_collection = db.get_collection("students")
 
 # Initialize the script generator
 script_generator = ScriptGenerator(ollama_model="llama3:8b")
@@ -193,6 +201,22 @@ async def generate_batch_scripts(requests: list[MetadataRequest]):
             })
     
     return {"results": results}
-
+# Keep FastAPI, add database layer
+@app.get("/gallery/{id}")
+async def get_book(id: str):
+    # MongoDB operations work great with FastAPI
+    # TODO: student user to books
+    """
+    Get the record for a specific student, looked up by `id`.
+    """
+    if (
+        book := await student_collection.find_one({"_id": ObjectId(id)})
+    ) is not None:
+        return book
+    raise HTTPException(status_code=404, detail=f"Student {id} not found")
+@app.get("/books")
+async def get_books(page: int = 1, limit: int = 20):
+    
+    pass
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8002)
