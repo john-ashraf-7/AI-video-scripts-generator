@@ -30,21 +30,22 @@ interface GalleryItemMetadata {
  * Interface for gallery item
  */
 interface GalleryItem {
-  id: string;
-  title: string;
+  id: number;
+  Title: string;
   creator: string;
   date: string;
   call_number: string;
-  description?: string;
+  description: string;
+  'Image URL': string;
 }
 
 /**
  * Interface for gallery response
  */
 interface GalleryResponse {
-  items: GalleryItem[];
-  total?: number;
-  message?: string;
+  books: GalleryItem[];
+  page: number;
+  limit: number;
 }
 
 /**

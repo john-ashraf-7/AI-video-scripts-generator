@@ -6,3 +6,4 @@ sacremoses>=0.0.53
 fastapi>=0.95.0
 uvicorn>=0.20.0
 python-multipart>=0.0.6
+motor>=3.0.0
