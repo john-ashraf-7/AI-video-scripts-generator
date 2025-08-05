@@ -183,7 +183,7 @@ export const getGallery = async (): Promise<GalleryResponse> => {
 
 export const getSingleBook = async (id: string): Promise<GalleryItem> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/gallery/${id}`);
+    const response = await fetch(`${API_BASE_URL}/gallery/books/${id}`);
     if (!response.ok) {
       let errorMessage = 'Failed to load book details';
       try {
@@ -206,7 +206,7 @@ export const getSingleBook = async (id: string): Promise<GalleryItem> => {
 
 export const getGalleryPage = async (page: number, limit: number): Promise<GalleryResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/gallery?page=${page}&limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/gallery/books?page=${page}&limit=${limit}`);
     
     if (!response.ok) {
       let errorMessage = 'Failed to load gallery page';
