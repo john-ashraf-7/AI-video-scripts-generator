@@ -10,6 +10,7 @@ export default function Item({item}: {item: GalleryItem}) {
         ImageURL="/songs.png"
     }
     
+    
     return(
         <div className="w-90 h-120 p-4 bg-darkBeige shadow rounded-lg flex flex-col m-4 hover:">
             <div className="relative group overflow-hidden shadow-lg cursor-pointer flex-1 min-h-0 mx-4">
