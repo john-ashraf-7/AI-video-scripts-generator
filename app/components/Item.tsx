@@ -9,7 +9,7 @@ export default function Item({item}: {item: GalleryItem}) {
     if (item.Title.includes("أغنية")) {
         ImageURL="/songs.png"
     }
-
+    
     return(
         <div className="w-90 h-120 p-4 bg-darkBeige shadow rounded-lg flex flex-col m-4 hover:">
             <div className="relative group overflow-hidden shadow-lg cursor-pointer flex-1 min-h-0 mx-4">
@@ -18,7 +18,7 @@ export default function Item({item}: {item: GalleryItem}) {
                     alt="Item Image" 
                     className="w-full h-full object-contain rounded"
                 />
-                <Link href="Record/id" className="absolute rounded inset-0 bg-black opacity-0 group-hover:opacity-50 transition duration-300 flex items-center justify-center">
+                <Link href={`/Record/${item._id}`} className="absolute rounded inset-0 bg-black opacity-0 group-hover:opacity-50 transition duration-300 flex items-center justify-center">
                     <span className="text-white text-lg font-semibold opacity-0 group-hover:opacity-100 transition duration-300">More Details</span>
                 </Link>
             </div>
@@ -39,6 +39,5 @@ export default function Item({item}: {item: GalleryItem}) {
                 Select Item
             </button>
         </div>
-
     )
 }

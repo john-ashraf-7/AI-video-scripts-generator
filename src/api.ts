@@ -30,6 +30,7 @@ interface GalleryItemMetadata {
  * Interface for gallery item
  */
 interface GalleryItem {
+  _id: string;
   id: number;
   Title: string;
   creator: string;
@@ -182,9 +183,9 @@ export const getGallery = async (): Promise<GalleryResponse> => {
 };
 
 
-export const getSingleBook = async (id: string): Promise<GalleryItem> => {
+export const getSingleBook = async (_id: string): Promise<GalleryItem> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/gallery/books/${id}`);
+    const response = await fetch(`${API_BASE_URL}/gallery/books/${_id}`);
     if (!response.ok) {
       let errorMessage = 'Failed to load book details';
       try {
