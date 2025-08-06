@@ -38,6 +38,29 @@ interface GalleryItem {
   call_number: string;
   description: string;
   'Image URL': string;
+  'Title (English)': string;
+  'Title (Arabic)': string;
+  'Creator (Arabic)': string;
+  'Location-Governorate (English)': string;
+  'Location-Governorate (Arabic)': string;
+  'Location-Country (English)': string;
+  'Location-Country (Arabic)': string;
+  'Subject LC': string;
+  'Keywords (English)': string;
+  'Keywords (Arabic)': string;
+  Medium: string;
+  Type: string;
+  Collection: string;
+  Source: string;
+  'Access Rights': string;
+  Publisher: string;
+  Notes: string;
+  Location: string;
+  Subject: string;
+  'Genre (AAT)': string;
+  Language: string;
+  Rights: string;
+  'Link to catalogue': string;
 }
 
 /**
