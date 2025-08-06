@@ -9,6 +9,7 @@ export default function Item({item}: {item: GalleryItem}) {
     if (item.Title.includes("أغنية")) {
         ImageURL="/songs.png"
     }
+
     
     
     return(
