@@ -83,7 +83,7 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
 3. **Start the React development server:**
    ```bash
-   npm start
+   npm run dev
    ```
 
    The frontend will be available at `http://localhost:3000`

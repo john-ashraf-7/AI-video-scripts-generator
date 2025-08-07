@@ -96,7 +96,7 @@ The backend will be available at `http://localhost:8002`.
 4. Install frontend dependencies and start the React development server:
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
 5. Access the application in your browser at:

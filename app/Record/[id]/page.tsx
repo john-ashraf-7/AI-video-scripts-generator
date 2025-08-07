@@ -1,12 +1,13 @@
 import {GalleryItem, getSingleBook} from '../../../src/api'
 import DetailsCard from '../../components/DetailsCard'
 
-export default async function Page({params}: {params: {id: string}}) {
-  const record: GalleryItem = await getSingleBook(params.id);
+export default async function Page({params}: {params: Promise<{id: string}>}) {
+  const { id } = await params;
+  const record: GalleryItem = await getSingleBook(id);
   
   return (
     <div>
-        <DetailsCard record={record}/>
+        <DetailsCard record={record} itemId={id}/>
     </div>
   )
 }

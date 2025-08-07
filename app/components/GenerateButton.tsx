@@ -1,7 +1,12 @@
-export default function GenerateButton(props: any) {
-    return (
-        <button className={`bg-calmRed text-white px-4 py-2 rounded hover:shadow-2xl transition duration-200 ${props.className}`}>
-            {props.itemscount}
-        </button>
-    )
+interface GenerateButtonProps {
+  className?: string;
+  itemscount?: string | number;
+}
+
+export default function GenerateButton(props: GenerateButtonProps) {
+  return (
+    <button className={`bg-calmRed text-white px-4 py-2 rounded hover:shadow-2xl transition duration-200 ${props.className || ''}`}>
+      {props.itemscount}
+    </button>
+  )
 }
