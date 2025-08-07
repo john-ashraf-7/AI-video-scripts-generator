@@ -51,6 +51,10 @@ The AUC Library seeks to promote its unique collections through engaging short-f
 - 🎬 **Quality Control**: Built-in validation and format preservation for Arabic translations
 - 🌐 **Modern React Interface**: Responsive design with loading indicators and user feedback
 - 📜 **Export-Ready Scripts**: Generate production-ready bilingual video scripts
+- ⚡ **Server-Side Rendering (SSR)**: Optimized performance with server-side data fetching and selective hydration
+- 🚀 **Performance Optimized**: Minimal client-side JavaScript with server components for static content
+- 💾 **Persistent State Management**: Selections and batch results persist across navigation using localStorage
+- 🔧 **Hydration-Safe Architecture**: Proper server/client rendering with no hydration mismatches
 
 ## 🛠️ Technologies Used
 
@@ -59,7 +63,7 @@ The AUC Library seeks to promote its unique collections through engaging short-f
 | Language Models    | [Ollama](https://ollama.ai/) + Llama3.2:8B |
 | Translation        | Helsinki-NLP Arabic translation models      |
 | Backend            | Python, FastAPI                            |
-| Frontend           | React.js                                   |
+| Frontend           | Next.js 15.4.4 (React 19) with App Router  |
 | NLP Libraries      | Transformers, Torch, BeautifulSoup4        |
 | Deployment         | Local (CPU)                                |
 
@@ -132,6 +136,14 @@ http://localhost:3000
 - Auto-scroll to results section
 - Progress counters for batch operations ("Processing... (2/5)")
 - Completion messages with visual feedback
+
+### **Performance & Architecture Optimizations**
+- **Server-Side Rendering**: Initial data fetched on server for faster page loads
+- **Selective Hydration**: Only interactive components are client-side, reducing JavaScript bundle
+- **Component Architecture**: Server components for static content, client components for interactivity
+- **State Persistence**: Selections and batch results survive navigation using localStorage
+- **Hydration Safety**: Proper server/client rendering with no hydration mismatches
+- **Optimized Build**: Clean, efficient code with minimal client-side JavaScript
 
 ## 📅 Work Plan
 
