@@ -1,7 +1,9 @@
+'use client';
+
 import { GalleryItem } from "@/src/api";
 import Link from "next/link";
 
-export default function DetailsCard({ record }: { record: Partial<GalleryItem> }) {
+export default function DetailsCard({ record, itemId }: { record: Partial<GalleryItem>; itemId?: string }) {
     // Load song images for records without an Image URL
     const ImageURL = record['Image URL'] || (record.Title?.includes("أغنية") ? "/songs.png" : '');
 
@@ -57,12 +59,15 @@ export default function DetailsCard({ record }: { record: Partial<GalleryItem> }
                         </p>
                     ))}
                 </div>
-                <button 
-                    className="mt-4 px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 hover:scale-105 shadow-md cursor-pointer"
-                    style={{backgroundColor: 'var(--color-calmRed)', color: 'white'}}
-                >
-                    Add to selection
-                </button>
+                <div className="mt-4">
+                    <a 
+                        href={`/?select=${itemId || record._id}`}
+                        className="px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 hover:scale-105 shadow-md cursor-pointer inline-block text-center"
+                        style={{backgroundColor: 'var(--color-calmRed)', color: 'white', textDecoration: 'none'}}
+                    >
+                        Add to selection
+                    </a>
+                </div>
             </div>
         </div>
     );

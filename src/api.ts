@@ -33,10 +33,10 @@ interface GalleryItem {
   _id: string;
   id: number;
   Title: string;
-  creator: string;
-  date: string;
-  call_number: string;
-  description: string;
+  Creator: string;
+  Date: string;
+  'Call number': string;
+  Description: string;
   'Image URL': string;
   'Title (English)': string;
   'Title (Arabic)': string;
