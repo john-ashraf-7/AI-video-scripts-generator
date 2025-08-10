@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { GalleryItem } from '../../src/api';
+import { GalleryItem } from '../../api';
 import SearchAndFilter from './SearchAndFilter';
 import BatchProcessing from './BatchProcessing';
 import Item from './Item';
+import Page from '../Record/[id]/page';
+import PageNavigation from './PageNavigation';
 
 interface ClientGalleryProps {
   initialItems: GalleryItem[];
@@ -17,7 +19,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [allItems] = useState<GalleryItem[]>(initialItems);
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>(initialItems);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [_isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
@@ -153,6 +155,11 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
           onClearSelection={handleClearSelection}
           compact={true}
         />
+      </div>
+
+      {/* Page navigation System */}
+      <div>
+        {/* <PageNavigation /> */}
       </div>
 
       {/* Items Grid */}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GalleryItem, type ScriptGenerationResponse } from '../../src/api';
+import { GalleryItem, type ScriptGenerationResponse } from '../../api';
 
 interface BatchResult {
   item: GalleryItem;
@@ -145,7 +145,7 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
               <button
                 onClick={handleBatchProcess}
                 disabled={batchProcessing}
-                className="bg-calmRed text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition-colors disabled:opacity-50 font-medium"
+                className="bg-calmRed cursor-pointer hover:shadow-lg text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition-colors disabled:opacity-50 font-medium"
               >
                 {batchProcessing ? (
                   <span className="flex items-center space-x-2">
@@ -158,7 +158,7 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
               </button>
               <button
                 onClick={onClearSelection}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                className="bg-gray-500 cursor-pointer text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
               >
                 Clear Selection
               </button>
@@ -167,7 +167,7 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
           {batchResults.length > 0 && (
             <button
               onClick={handleClearResults}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              className="bg-blue-500 cursor-pointer text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
             >
               Clear Results
             </button>

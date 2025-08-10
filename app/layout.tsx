@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AI Script Generator",
   description: "Create an engaging 3-5 mins video script out of the AUC library's digital collection!",
+  icons: {
+    icon: '/favicon.ico', // Use absolute path from public root
+  },
 };
 
 export default function RootLayout({

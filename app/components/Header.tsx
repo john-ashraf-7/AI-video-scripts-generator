@@ -7,7 +7,7 @@ export default function Header() {
       <nav className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-xl font-bold">
           <Image
-            src="/LibraryProjectLogo.png"
+            src="/favicon.ico"
             alt="Logo: Stacked books"
             width={80}
             height={80}

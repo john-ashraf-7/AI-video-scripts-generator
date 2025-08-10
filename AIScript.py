@@ -584,7 +584,8 @@ class ScriptGenerator:
 if __name__ == "__main__":
     # --- Configuration ---
     # ❗️ UPDATE THIS PATH to the actual location of your JSON Lines file.
-    JSON_FILE_PATH = "/Users/refobic/Downloads/auc_digital_selenium_firstpage.jsonl"
+    # JSON_FILE_PATH = "/Users/refobic/Downloads/auc_digital_selenium_firstpage.jsonl"
+    JSON_FILE_PATH = "./sample_data.jsonl"
     
     ARTIFACT_TYPE = "publication_deep_dive"
     
@@ -624,3 +625,4 @@ if __name__ == "__main__":
         artifact_type=ARTIFACT_TYPE,
         row_indices=selected_indices
     )
+    

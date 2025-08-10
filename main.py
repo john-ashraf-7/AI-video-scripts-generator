@@ -19,11 +19,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# MongoDB connection
 db_password = "llt123"
 db_username = "muhammad"
 DATABASE_URL = f"mongodb+srv://{db_username}:{db_password}@cluster0.rtcxvzm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = AsyncIOMotorClient(DATABASE_URL)
-# Database configuration
 db = client.get_database("metadata")
 digital_collection = db.get_collection("Digital Collection")
 

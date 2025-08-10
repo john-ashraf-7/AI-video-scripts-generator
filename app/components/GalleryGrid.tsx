@@ -1,5 +1,5 @@
 import Item from './Item';
-import { GalleryItem } from '../../src/api';
+import { GalleryItem } from '../../api';
 
 interface GalleryGridProps {
   items: GalleryItem[];

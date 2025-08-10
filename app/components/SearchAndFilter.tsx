@@ -22,7 +22,7 @@ export default function SearchAndFilter({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-    onSearchChange(query);
+    onSearchChange(query); //this is where the search query is passed to the parent component
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -117,7 +117,7 @@ export default function SearchAndFilter({
           </label>
           <button
             onClick={handleClearFilters}
-            className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            className="w-full cursor-pointer px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
           >
             Clear Filters
           </button>
