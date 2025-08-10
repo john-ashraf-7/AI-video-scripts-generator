@@ -11,7 +11,7 @@ interface ItemProps {
 
 export default function Item({item, isSelected, onSelect}: ItemProps) {
     let ImageURL = item['Image URL'];
-    if (item.Title.includes("أغنية")) {
+    if (item.Title?.includes("أغنية")) {
         ImageURL="/songs.png"
     }
 

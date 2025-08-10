@@ -2,10 +2,10 @@ import { getGalleryPage } from '../../api';
 
 export default async function GalleryData() {
   try {
-    const records = await getGalleryPage(1, 100);
+    const records = await getGalleryPage(1, 100, 'name');
     return records.books || [];
   } catch (error) {
     console.error('Failed to load data:', error);
     return [];
   }
-} 
+}

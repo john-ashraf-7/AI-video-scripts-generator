@@ -231,10 +231,10 @@ export const getSingleBook = async (_id: string): Promise<GalleryItem> => {
   }
 };
 
-export const getGalleryPage = async (page: number, limit: number): Promise<GalleryResponse> => {
+export const getGalleryPage = async (page: number, limit: number, sort: string): Promise<GalleryResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/gallery/books?page=${page}&limit=${limit}`);
-    
+    const response = await fetch(`${API_BASE_URL}/gallery/books?page=${page}&limit=${limit}&sort=${sort}`);
+
     if (!response.ok) {
       let errorMessage = 'Failed to load gallery page';
       try {

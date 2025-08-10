@@ -14,17 +14,16 @@ app = FastAPI(title="AI Video Script Generator API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # React dev server
+    allow_origins=["http://localhost:3000"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# MongoDB connection
 db_password = "llt123"
 db_username = "muhammad"
 DATABASE_URL = f"mongodb+srv://{db_username}:{db_password}@cluster0.rtcxvzm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = AsyncIOMotorClient(DATABASE_URL)
+# TODO: change the database name
 db = client.get_database("metadata")
 digital_collection = db.get_collection("Digital Collection")
 
@@ -245,13 +244,17 @@ async def get_book(id: str):
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
 @app.get("/gallery/books")
-async def get_books(page: int = 1, limit: int = 20):
-    """
-    Get a paginated list of books.
-    """
+async def get_books(page: int = 1, limit: int = 20, sort: str = "name"):
     try:
         skip = (page - 1) * limit
-        books_cursor = digital_collection.find().skip(skip).limit(limit)
+        sort_map = {
+            "name": ("Title", 1),
+            "creator": ("Creator", 1),
+            "year": ("Date", 1),
+            "year_desc": ("Date", -1),
+        }
+        sort_field, sort_order = sort_map.get(sort, ("Title", 1))
+        books_cursor = digital_collection.find().sort(sort_field, sort_order).skip(skip).limit(limit)
         books = await books_cursor.to_list(length=limit)
         for book in books:
             book["_id"] = str(book["_id"])
