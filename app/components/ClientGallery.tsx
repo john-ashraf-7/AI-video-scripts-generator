@@ -8,6 +8,8 @@ import BatchProcessing from './BatchProcessing';
 import Item from './Item';
 import Page from '../Record/[id]/page';
 import PageNavigation from './PageNavigation';
+import { getGalleryPage } from '../../api';
+import test from 'node:test';
 
 interface ClientGalleryProps {
   initialItems: GalleryItem[];
@@ -20,6 +22,8 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>(initialItems);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
+  const [pageNumber, setPageNumber] = useState();
+  let currentSort: string = 'title';
 
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
@@ -107,31 +111,16 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   };
 
   // Sort functionality
-  const handleSortChange = (sort: string) => {
-    const sorted = [...filteredItems].sort((a, b) => {
-      switch (sort) {
-        case 'name':
-          return (a.Title || '').localeCompare(b.Title || '');
-        case 'creator':
-          return (a.Creator || '').localeCompare(b.Creator || '');
-        case 'year':
-          const yearA = parseInt(a.Date || '0') || 0;
-          const yearB = parseInt(b.Date || '0') || 0;
-          return yearA - yearB;
-        case 'year_desc':
-          const yearADesc = parseInt(a.Date || '0') || 0;
-          const yearBDesc = parseInt(b.Date || '0') || 0;
-          return yearBDesc - yearADesc;
-        default:
-          return 0;
-      }
-    });
-    setFilteredItems(sorted);
+  const handleSortChange = async () => {
+    const sorted = await getGalleryPage(pageNumber, 100, currentSort);
+    setFilteredItems(sorted.books);
+    console.log(`Sorted by: ${currentSort}`);
   };
 
   // Clear filters
   const handleClearFilters = () => {
     setFilteredItems(allItems);
+    console.log(`current page in parent should be ${pageNumber}`);
   };
 
   return (
@@ -159,7 +148,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
 
       {/* Page navigation System */}
       <div>
-        {/* <PageNavigation /> */}
+        <PageNavigation pageNumber={pageNumber} assignPageNumber={setPageNumber} currentSort={currentSort} setFilteredItems={setFilteredItems} />
       </div>
 
       {/* Items Grid */}
