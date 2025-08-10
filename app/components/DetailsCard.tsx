@@ -1,6 +1,6 @@
 'use client';
 
-import { GalleryItem } from "@/src/api";
+import { GalleryItem } from "@/api";
 import Link from "next/link";
 
 export default function DetailsCard({ record, itemId }: { record: Partial<GalleryItem>; itemId?: string }) {

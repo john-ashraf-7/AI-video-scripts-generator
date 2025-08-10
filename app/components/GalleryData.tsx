@@ -1,4 +1,4 @@
-import { getGalleryPage } from '../../src/api';
+import { getGalleryPage } from '../../api';
 
 export default async function GalleryData() {
   try {

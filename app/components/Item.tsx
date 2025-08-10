@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {GalleryItem} from '../../src/api';
+import {GalleryItem} from '../../api';
 
 interface ItemProps {
   item: GalleryItem;
@@ -26,7 +26,7 @@ export default function Item({item, isSelected, onSelect}: ItemProps) {
                 <img 
                     src={ImageURL}    
                     alt="Item Image" 
-                    className="w-full h-64 object-cover rounded-lg"
+                    className="w-full h-64 object-contain rounded-lg"
                 />
                 <Link href={`/Record/${item._id}`} className="absolute inset-0 bg-black opacity-0 group-hover:opacity-60 transition duration-300 flex items-center justify-center rounded-lg">
                     <span className="text-white text-lg font-semibold opacity-0 group-hover:opacity-100 transition duration-300">View Details</span>
@@ -44,7 +44,7 @@ export default function Item({item, isSelected, onSelect}: ItemProps) {
             <div>
                 <button 
                     onClick={handleSelect}
-                    className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                    className={`w-full cursor-pointer hover:shadow-md py-2 px-4 rounded-lg font-medium transition-colors ${
                         isSelected 
                             ? 'bg-gray-400 text-white' 
                             : 'bg-calmRed text-white hover:bg-opacity-90'

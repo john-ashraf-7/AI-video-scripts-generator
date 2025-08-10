@@ -1,4 +1,4 @@
-import {GalleryItem, getSingleBook} from '../../../src/api'
+import {GalleryItem, getSingleBook} from '../../../api'
 import DetailsCard from '../../components/DetailsCard'
 
 export default async function Page({params}: {params: Promise<{id: string}>}) {

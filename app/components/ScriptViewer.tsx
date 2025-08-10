@@ -1,5 +1,5 @@
 import React from "react";
-import { type ScriptGenerationResponse } from "../../src/api";
+import { type ScriptGenerationResponse } from "../../api";
 
 /**
  * Props interface for the ScriptViewer component

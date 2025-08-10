@@ -102,6 +102,7 @@ interface ScriptGenerationResponse {
  * @returns Promise<HealthCheckResponse> - Health status information
  * @throws Error if the API is unreachable or returns an error
  */
+
 export const healthCheck = async (): Promise<HealthCheckResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/health`);
@@ -129,6 +130,7 @@ export const healthCheck = async (): Promise<HealthCheckResponse> => {
  * @returns Promise<ScriptGenerationResponse> - Generated script data with QC results
  * @throws Error if the generation fails or API returns an error
  */
+
 export const generateScript = async (
   requestData: ScriptGenerationRequest
 ): Promise<ScriptGenerationResponse> => {
