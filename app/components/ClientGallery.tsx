@@ -22,8 +22,8 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>(initialItems);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
-  const [pageNumber, setPageNumber] = useState();
-  let currentSort: string = 'title';
+  const [pageNumber, setPageNumber] = useState(1);
+  const currentSort: string = 'title';
 
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
