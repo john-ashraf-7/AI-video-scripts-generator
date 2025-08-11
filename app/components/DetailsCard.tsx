@@ -33,11 +33,9 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
                     <span className="text-lg">←</span>
                     Back
                 </Link>
-                  <Image
+                  <img
                         src={ImageURL}
-                        alt=""
-                        width={256}
-                        height={256}
+                        alt="item image"
                         className="w-64 h-64 object-contain rounded-lg mx-auto mb-8 shadow-xl"
                     />
 

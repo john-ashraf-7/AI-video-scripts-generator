@@ -23,7 +23,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
-  const currentSort: string = 'title';
+  const currentSort: string = 'Title';
 
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
@@ -125,31 +125,34 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Search and Filter */}
-      <SearchAndFilter
-        onSearchChange={handleSearchChange}
-        onFilterChange={handleFilterChange}
-        onSortChange={handleSortChange}
-        onClearFilters={handleClearFilters}
-      />
+      <div className="flex gap-4 mb-8 h-64">
+        <div className="w-2/3">
+          <div>
+            <SearchAndFilter
+              onSearchChange={handleSearchChange}
+              onFilterChange={handleFilterChange}
+            onSortChange={handleSortChange}
+            onClearFilters={handleClearFilters}
+            />
+          </div>
+          <div className="mb-6">
+            <p className="text-gray-600 mb-4">
+              Showing {filteredItems.length} of {allItems.length} items
+            </p>
+            <BatchProcessing 
+              selectedItems={selectedItems}
+              allItems={allItems}
+              onClearSelection={handleClearSelection}
+              compact={true}
+            />
+          </div>
+        </div>
+        <div className="w-1/3">
+          <PageNavigation pageNumber={pageNumber} assignPageNumber={setPageNumber} currentSort={currentSort} setFilteredItems={setFilteredItems} />
+        </div>
+      </div>
 
       {/* Results and Selection Info */}
-      <div className="mb-6">
-        <p className="text-gray-600 mb-4">
-          Showing {filteredItems.length} of {allItems.length} items
-        </p>
-        <BatchProcessing 
-          selectedItems={selectedItems}
-          allItems={allItems}
-          onClearSelection={handleClearSelection}
-          compact={true}
-        />
-      </div>
-
-      {/* Page navigation System */}
-      <div>
-        <PageNavigation pageNumber={pageNumber} assignPageNumber={setPageNumber} currentSort={currentSort} setFilteredItems={setFilteredItems} />
-      </div>
 
       {/* Items Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

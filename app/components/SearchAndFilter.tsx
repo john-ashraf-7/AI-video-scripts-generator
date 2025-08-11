@@ -15,19 +15,19 @@ export default function SearchAndFilter({
   onSortChange,
   onClearFilters
 }: SearchAndFilterProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchFilter, setSearchFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [currentSearchQuery, setCurrentSearchQuery] = useState('');
+  const [currentSearchFilter, setCurrentSearchFilter] = useState('all');
+  const [currentSortBy, setSortBy] = useState('Title');
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
-    setSearchQuery(query);
+    setCurrentSearchQuery(query);
     onSearchChange(query); //this is where the search query is passed to the parent component
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const filter = e.target.value;
-    setSearchFilter(filter);
+    setCurrentSearchFilter(filter);
     onFilterChange(filter);
   };
 
@@ -38,10 +38,16 @@ export default function SearchAndFilter({
   };
 
   const handleClearFilters = () => {
-    setSearchQuery('');
-    setSearchFilter('all');
+    setCurrentSearchQuery('');
+    setCurrentSearchFilter('all');
     setSortBy('name');
     onClearFilters();
+  };
+
+  const handleApplyFilters = () => {
+    onSearchChange(currentSearchQuery);
+    onFilterChange(currentSearchFilter);
+    onSortChange(currentSortBy);
   };
 
   return (
@@ -54,7 +60,7 @@ export default function SearchAndFilter({
           </label>
           <input
             type="text"
-            value={searchQuery}
+            value={currentSearchQuery}
             onChange={handleSearchChange}
             placeholder="Search items..."
             className="w-full px-3 py-2 border border-gray-300 bg-lightBeige rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent font-semibold text-gray-800 text-md line-clamp-2 leading-tight"
@@ -68,9 +74,9 @@ export default function SearchAndFilter({
           </label>
           <div className="relative">
             <select
-              value={searchFilter}
+              value={currentSearchFilter}
               onChange={handleFilterChange}
-              className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none bg-darkBeige cursor-pointer"
+              className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none cursor-pointer"
             >
               <option value="all">All Fields</option>
               <option value="title">Title</option>
@@ -93,34 +99,42 @@ export default function SearchAndFilter({
           </label>
           <div className="relative">
             <select
-              value={sortBy}
+              value={currentSortBy}
               onChange={handleSortChange}
-              className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none bg-darkBeige cursor-pointer"
+              className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none cursor-pointer"
             >
               <option value="name">Title A-Z</option>
               <option value="creator">Creator A-Z</option>
               <option value="year">Year (Oldest First)</option>
               <option value="year_desc">Year (Newest First)</option>
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
           </div>
         </div>
 
-        {/* Clear Filters */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            &nbsp;
-          </label>
-          <button
-            onClick={handleClearFilters}
-            className="w-full font-semibold text-gray-800 text-md line-clamp-2 leading-tight cursor-pointer px-4 py-2 bg-calmRed text-darkBeige rounded-lg hover:shadow-lg transition-colors"
-          >
-            Clear Filters
-          </button>
+        {/* Clear & apply Filters */}
+        <div className="flex flex-row gap-4">
+          <div className="flex justify-center items-center">
+            <label className="text-sm font-medium text-gray-700">
+              &nbsp;
+            </label>
+            <button
+              onClick={handleClearFilters}
+              className="w-full font-semibold text-gray-800 text-md line-clamp-2 leading-tight cursor-pointer px-4 py-2 bg-lightBeige text-darkBeige rounded-lg hover:shadow-lg transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+          <div className="flex justify-center items-center">
+            <label className="text-sm font-medium text-gray-700">
+              &nbsp;
+            </label>
+            <button
+              onClick={handleApplyFilters}
+              className="w-full font-semibold text-gray-800 text-md line-clamp-2 leading-tight cursor-pointer px-4 py-2 bg-lightBeige text-darkBeige rounded-lg hover:shadow-lg transition-colors"
+            >
+              Apply Filters
+            </button>
+          </div>
         </div>
       </div>
     </div>

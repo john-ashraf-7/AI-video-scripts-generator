@@ -1,5 +1,6 @@
 import { GalleryItem, getGalleryPage } from "@/api";
 import { useState } from "react";
+import {pageLimit} from "./GalleryData";
 
 interface PageNavigationProps {
   pageNumber: number;
@@ -19,6 +20,7 @@ export default function PageNavigation(props: PageNavigationProps) {
       alert("You are already on the first page.");
       return;
     }
+    setFilteredItems([]);
     setInputValue("");
     setLoading(true);
     assignPageNumber(Math.max(pageNumber - 1, 1));
@@ -28,6 +30,7 @@ export default function PageNavigation(props: PageNavigationProps) {
   };
 
   const handleNext = async () => {
+    setFilteredItems([]);
     setInputValue("");
     setLoading(true);
     assignPageNumber(pageNumber + 1);
@@ -37,6 +40,11 @@ export default function PageNavigation(props: PageNavigationProps) {
   };
 
   const handleSearch = async (pageNum: number) => {
+    if (pageNum < 1 || pageNum > pageLimit) {
+      alert(`Please enter a page number between 1 and ${pageLimit}.`);
+      return;
+    }
+    setFilteredItems([]);
     setLoading(true);
     assignPageNumber(pageNum);
     const results = await getGalleryPage(pageNum, 100, currentSort);
@@ -54,8 +62,7 @@ export default function PageNavigation(props: PageNavigationProps) {
   }
 
   return (
-  <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-darkBeige rounded-lg w-full md:w-1/2 p-4 mx-auto min-h-[100px] mb-4">
-    
+  <div className="bg-darkBeige py-6 px-20 rounded-xl shadow-lg flex flex-col h-full w-full justify-between items-center">
     <div className="flex items-center gap-3">
       <button
         className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
@@ -75,7 +82,13 @@ export default function PageNavigation(props: PageNavigationProps) {
         &gt;
       </button>
     </div>
-
+    <div className="h-full w-full flex items-center justify-center">
+      <img 
+        src="/websiteLayout.png"
+        alt="a website layout"
+        className="object-contain h-full max-h-[130px]"
+      />
+    </div>
     <div className="flex items-center gap-3">
       <input
         type="number"
