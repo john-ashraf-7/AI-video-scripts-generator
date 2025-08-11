@@ -45,11 +45,11 @@ export default function SearchAndFilter({
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg mb-8">
+    <div className="bg-darkBeige p-6 rounded-xl shadow-lg mb-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Search Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="font-semibold text-gray-800 text-md line-clamp-2 leading-tight mb-2">
             Search
           </label>
           <input
@@ -57,20 +57,20 @@ export default function SearchAndFilter({
             value={searchQuery}
             onChange={handleSearchChange}
             placeholder="Search items..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 bg-lightBeige rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent font-semibold text-gray-800 text-md line-clamp-2 leading-tight"
           />
         </div>
 
         {/* Search Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="font-semibold text-gray-800 text-md line-clamp-2 leading-tight mb-2">
             Search In
           </label>
           <div className="relative">
             <select
               value={searchFilter}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none bg-white cursor-pointer"
+              className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none bg-darkBeige cursor-pointer"
             >
               <option value="all">All Fields</option>
               <option value="title">Title</option>
@@ -88,14 +88,14 @@ export default function SearchAndFilter({
 
         {/* Sort */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="font-semibold text-gray-800 text-md line-clamp-2 leading-tight mb-2">
             Sort By
           </label>
           <div className="relative">
             <select
               value={sortBy}
               onChange={handleSortChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none bg-white cursor-pointer"
+              className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none bg-darkBeige cursor-pointer"
             >
               <option value="name">Title A-Z</option>
               <option value="creator">Creator A-Z</option>
@@ -117,7 +117,7 @@ export default function SearchAndFilter({
           </label>
           <button
             onClick={handleClearFilters}
-            className="w-full cursor-pointer px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            className="w-full font-semibold text-gray-800 text-md line-clamp-2 leading-tight cursor-pointer px-4 py-2 bg-calmRed text-darkBeige rounded-lg hover:shadow-lg transition-colors"
           >
             Clear Filters
           </button>

@@ -10,17 +10,14 @@ interface ItemProps {
 }
 
 export default function Item({item, isSelected, onSelect}: ItemProps) {
-    let ImageURL = item['Image URL'];
-    if (item.Title?.includes("أغنية")) {
-        ImageURL="/songs.png"
-    }
+    const ImageURL = item['Image URL'] || (item.Type?.includes("song") ? "/songs.png" : "/imageNotFound.png");
 
     const handleSelect = () => {
         onSelect(item.id.toString());
     };
 
     return(
-        <div className={`w-full max-w-md p-3 bg-white shadow-lg rounded-xl flex flex-col transition-all duration-200 hover:shadow-xl hover:scale-105 ${isSelected ? 'ring-2 ring-calmRed' : ''}`}>
+        <div className={`w-full max-w-md p-3 bg-darkBeige shadow-lg rounded-xl flex flex-col transition-all duration-200 hover:shadow-xl hover:scale-105 ${isSelected ? 'ring-2 ring-calmRed' : ''}`}>
             {/* Image Container */}
             <div className="relative group overflow-hidden shadow-md cursor-pointer rounded-lg mb-2">
                 <img 
@@ -36,7 +33,7 @@ export default function Item({item, isSelected, onSelect}: ItemProps) {
             {/* Item Information */}
             <div className="mb-2">
                 <h2 className="font-semibold text-gray-800 text-lg line-clamp-2 leading-tight">
-                    {item.Title}
+                    {item.Title || item["Title (English)"] || item["Title (Arabic)"]}
                 </h2>
             </div>
             
