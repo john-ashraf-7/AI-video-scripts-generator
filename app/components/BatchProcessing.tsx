@@ -54,7 +54,8 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
       setBatchProgress({ current: i + 1, total: selectedItemData.length });
       
       try {
-        const response = await fetch('http://localhost:8002/generate-script', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002';
+        const response = await fetch(`${apiUrl}/generate-script`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

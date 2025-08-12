@@ -2,9 +2,9 @@
 
 /**
  * Base URL for the backend API
- * Change this if the backend is running on a different host/port
+ * Uses environment variable with fallback to localhost for development
  */
-const API_BASE_URL = "http://localhost:8002";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8002";
 
 /**
  * Interface for health check response
