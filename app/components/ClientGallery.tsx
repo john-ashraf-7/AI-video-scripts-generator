@@ -6,11 +6,9 @@ import { GalleryItem } from '../../api';
 import SearchAndFilter from './SearchAndFilter';
 import BatchProcessing from './BatchProcessing';
 import Item from './Item';
-import Page from '../Record/[id]/page';
 import PageNavigation from './PageNavigation';
 import { getGalleryPage } from '../../api';
 import {pageLimit} from './GalleryData';
-import test from 'node:test';
 
 interface ClientGalleryProps {
   initialItems: GalleryItem[];
@@ -22,7 +20,6 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [allItems] = useState<GalleryItem[]>(initialItems);
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>(initialItems);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [isClient, setIsClient] = useState(false);
 
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   //pageLimit = 100 
@@ -30,9 +27,14 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [currentSearchQuery, setCurrentSearchQuery] = useState<string>("");
   const [currentSearchFilter, setCurrentSearchFilter] = useState("All Fields");
   
+  const [totalItems, setTotalItems] = useState<number>(initialItems.length);
+  const [totalPages, setTotalPages] = useState<number>(1);
+
+  const [hasBatchResults, setHasBatchResults] = useState(false);
+
+
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
-    setIsClient(true);
     const saved = localStorage.getItem('selectedItems');
     if (saved) {
       setSelectedItems(new Set(JSON.parse(saved)));
@@ -46,10 +48,10 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
       processedSelection.current = true;
       // Find the item with the matching _id and select it
       const itemToSelect = allItems.find(item => item._id === selectId);
-      if (itemToSelect) {
+      if (itemToSelect && itemToSelect.id) {
         setSelectedItems(prev => {
           const newSet = new Set(prev);
-          newSet.add(itemToSelect.id.toString());
+          newSet.add(itemToSelect.id!.toString());
           // Save to localStorage
           localStorage.setItem('selectedItems', JSON.stringify([...newSet]));
           return newSet;
@@ -76,9 +78,10 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   };
 
   // Clear selection
-  const handleClearSelection = () => {
+  const handleClearSelection = async () => {
     setSelectedItems(new Set());
     localStorage.removeItem('selectedItems');
+
   };
 
   const onFilterChange = async (sortBy: string, searchQuery: string, searchFilter: string) => {
@@ -92,6 +95,8 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
 
     const records = await getGalleryPage({page: currentPageNumber, limit: 100, sort: sortBy , searchQuery: searchQuery, searchIn: searchFilter});
     setFilteredItems(records.books);
+    setTotalItems(records.total || 0); // Update total items
+    setTotalPages(records.total_pages || 1); // Update total pages
   }
 
   const onPageChange = async (page: number) => {
@@ -103,8 +108,18 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
     setCurrentPageNumber(page);
     const records = await getGalleryPage({page: page, limit: 100, sort: currentSortBy , searchQuery: currentSearchQuery, searchIn: currentSearchFilter});
     setFilteredItems(records.books);
+    setTotalItems(records.total || 0); // Update total items
+    setTotalPages(records.total_pages || 1); // Update total pages
     console.log(`Page changed to: ${page}`);
   };
+
+  
+
+  const clearResults = async () => {
+    setHasBatchResults(false);
+    const records = await getGalleryPage({page: currentPageNumber, limit: 100, sort: currentSortBy , searchQuery: currentSearchQuery, searchIn: currentSearchFilter});
+    setFilteredItems(records.books);
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -117,20 +132,24 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
           </div>
           <div className="mb-6">
             <p className="text-gray-600 mb-4">
-              Showing {filteredItems.length} of {allItems.length} items
+              Showing {filteredItems.length} of {totalItems} items (Page {currentPageNumber} of {totalPages})
             </p>
-            <BatchProcessing 
-              selectedItems={selectedItems}
-              allItems={allItems}
-              onClearSelection={handleClearSelection}
-              compact={true}
-            />
           </div>
         </div>
         <div className="w-1/3">
           <PageNavigation pageNumber={currentPageNumber} onPageChange={onPageChange}/>
         </div>
       </div>
+
+      {/* Batch Processing - Moved outside of fixed height container */}
+      <BatchProcessing 
+        selectedItems={selectedItems}
+        allItems={allItems}
+        onClearSelection={handleClearSelection}
+        setFilteredItems={setFilteredItems}
+        clearResults={clearResults}
+        setHasBatchResults={setHasBatchResults}
+      />
 
       {/* Results and Selection Info */}
 
@@ -140,18 +159,23 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
           <Item 
             key={item._id} 
             item={item}
-            isSelected={selectedItems.has(item.id.toString())}
+            isSelected={item.id ? selectedItems.has(item.id.toString()) : false}
             onSelect={handleItemSelect}
           /> 
         ))}
       </div>
 
       {/* No Results */}
-      {filteredItems.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">
-            No items found matching your criteria.
-          </p>
+      {filteredItems.length === 0 && !hasBatchResults && (
+        <div className="text-center m-8 py-12">
+          <div className="max-w-md mx-auto">
+            <blockquote className="text-gray-700 text-lg italic mb-4">
+              &ldquo;The only thing that you absolutely have to know is the location of the library.&rdquo;
+            </blockquote>
+            <footer className="text-gray-600 text-sm">
+              — Albert Einstein
+            </footer>
+          </div>
         </div>
       )}
     </div>
