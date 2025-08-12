@@ -225,6 +225,7 @@ cp .env.example .env
 3. **Set up database (required):**
 ```bash
 # Get library data from scraper branch (12MB JSON file)
+# Direct link: https://github.com/john-ashraf-7/AI-video-scripts-generator/tree/scraper
 git checkout scraper
 cp library_data.json ../library_data.json
 git checkout main
