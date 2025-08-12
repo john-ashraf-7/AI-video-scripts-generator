@@ -5,30 +5,49 @@ from typing import Optional
 import uvicorn
 import json
 import re
+import os
+from dotenv import load_dotenv
 from AIScript import ScriptGenerator
 from motor.motor_asyncio import AsyncIOMotorClient 
 from bson import ObjectId
 
+# Load environment variables
+load_dotenv()
+
 app = FastAPI(title="AI Video Script Generator API")
+
+# Get configuration from environment variables
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+MONGODB_USERNAME = os.getenv("MONGODB_USERNAME")
+MONGODB_PASSWORD = os.getenv("MONGODB_PASSWORD")
+MONGODB_CLUSTER = os.getenv("MONGODB_CLUSTER")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "metadata")
+MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "Digital Collection")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3:8b")
+BACKEND_HOST = os.getenv("BACKEND_HOST", "127.0.0.1")
+BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8002"))
+
+# Validate required environment variables
+if not MONGODB_USERNAME or not MONGODB_PASSWORD or not MONGODB_CLUSTER:
+    raise ValueError("Missing required MongoDB environment variables. Please check your .env file.")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-db_password = "llt123"
-db_username = "muhammad"
-DATABASE_URL = f"mongodb+srv://{db_username}:{db_password}@cluster0.rtcxvzm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# Build MongoDB connection URL
+DATABASE_URL = f"mongodb+srv://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@{MONGODB_CLUSTER}/?retryWrites=true&w=majority&appName=Cluster0"
 client = AsyncIOMotorClient(DATABASE_URL)
-# TODO: change the database name
-db = client.get_database("metadata")
-digital_collection = db.get_collection("Digital Collection")
+db = client.get_database(MONGODB_DATABASE)
+digital_collection = db.get_collection(MONGODB_COLLECTION)
 
 # Initialize the script generator
-script_generator = ScriptGenerator(ollama_model="llama3:8b")
+script_generator = ScriptGenerator(ollama_model=OLLAMA_MODEL)
 
 
 class MetadataRequest(BaseModel):
@@ -367,4 +386,4 @@ async def get_books(
     
     
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8002)
+    uvicorn.run(app, host=BACKEND_HOST, port=BACKEND_PORT)
