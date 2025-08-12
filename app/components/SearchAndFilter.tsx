@@ -3,51 +3,40 @@
 import { useState } from 'react';
 
 interface SearchAndFilterProps {
-  onSearchChange: (query: string) => void;
-  onFilterChange: (filter: string) => void;
-  onSortChange: (sort: string) => void;
-  onClearFilters: () => void;
+  onFilterChange: (sortBy: string, searchQuery: string, searchFilter: string) => void;
 }
 
 export default function SearchAndFilter({
-  onSearchChange,
-  onFilterChange,
-  onSortChange,
-  onClearFilters
+  onFilterChange
 }: SearchAndFilterProps) {
-  const [currentSearchQuery, setCurrentSearchQuery] = useState('');
-  const [currentSearchFilter, setCurrentSearchFilter] = useState('all');
-  const [currentSortBy, setSortBy] = useState('Title');
+  const [currentSortBy, setSortBy] = useState<string>("Title A-Z");
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>("");
+  const [currentSearchFilter, setCurrentSearchFilter] = useState("All Fields");
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setCurrentSearchQuery(query);
-    onSearchChange(query); //this is where the search query is passed to the parent component
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const filter = e.target.value;
     setCurrentSearchFilter(filter);
-    onFilterChange(filter);
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sort = e.target.value;
     setSortBy(sort);
-    onSortChange(sort);
   };
-
+  
   const handleClearFilters = () => {
+    setSortBy('Title A-Z');
     setCurrentSearchQuery('');
-    setCurrentSearchFilter('all');
-    setSortBy('name');
-    onClearFilters();
+    setCurrentSearchFilter('All Fields');
+    onFilterChange('Title A-Z', '', 'All Fields');
   };
 
   const handleApplyFilters = () => {
-    onSearchChange(currentSearchQuery);
-    onFilterChange(currentSearchFilter);
-    onSortChange(currentSortBy);
+    onFilterChange(currentSortBy, currentSearchQuery, currentSearchFilter);
   };
 
   return (

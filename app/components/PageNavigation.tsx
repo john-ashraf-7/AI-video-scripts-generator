@@ -1,54 +1,34 @@
+'use client'
 import { GalleryItem, getGalleryPage } from "@/api";
 import { useState } from "react";
 import {pageLimit} from "./GalleryData";
 
 interface PageNavigationProps {
   pageNumber: number;
-  assignPageNumber: (page: number) => void;
-  currentSort: string;
-  setFilteredItems: (items: GalleryItem[]) => void;
+  onPageChange: (page: number) => void;
 }
 
-export default function PageNavigation(props: PageNavigationProps) {
-  const { pageNumber, assignPageNumber, currentSort, setFilteredItems } = props;
+export default function PageNavigation({ pageNumber, onPageChange}: PageNavigationProps) {
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState(""); // <-- state for search input
 
-  const handlePrevious = async () => {
-    if (pageNumber == 1) {
-      // Error handling block: already at first page
-      alert("You are already on the first page.");
-      return;
-    }
-    setFilteredItems([]);
+  const handlePrevious = () => {
     setInputValue("");
     setLoading(true);
-    assignPageNumber(Math.max(pageNumber - 1, 1));
-    const sorted = await getGalleryPage(pageNumber - 1, 100, currentSort);
-    setFilteredItems(sorted.books);
+    onPageChange(Math.max(pageNumber - 1, 1));
     setLoading(false);
   };
 
-  const handleNext = async () => {
-    setFilteredItems([]);
+  const handleNext =  () => {
     setInputValue("");
     setLoading(true);
-    assignPageNumber(pageNumber + 1);
-    const sorted = await getGalleryPage(pageNumber + 1, 100, currentSort);
-    setFilteredItems(sorted.books);
+    onPageChange(pageNumber + 1);
     setLoading(false);
   };
 
   const handleSearch = async (pageNum: number) => {
-    if (pageNum < 1 || pageNum > pageLimit) {
-      alert(`Please enter a page number between 1 and ${pageLimit}.`);
-      return;
-    }
-    setFilteredItems([]);
     setLoading(true);
-    assignPageNumber(pageNum);
-    const results = await getGalleryPage(pageNum, 100, currentSort);
-    setFilteredItems(results.books);
+    onPageChange(pageNum);
     setLoading(false);
   };
 

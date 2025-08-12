@@ -9,6 +9,7 @@ import Item from './Item';
 import Page from '../Record/[id]/page';
 import PageNavigation from './PageNavigation';
 import { getGalleryPage } from '../../api';
+import {pageLimit} from './GalleryData';
 import test from 'node:test';
 
 interface ClientGalleryProps {
@@ -22,9 +23,13 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>(initialItems);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
-  const [pageNumber, setPageNumber] = useState(1);
-  const currentSort: string = 'Title';
 
+  const [currentPageNumber, setCurrentPageNumber] = useState(1);
+  //pageLimit = 100 
+  const [currentSortBy, setCurrentSortBy] = useState<string>("Title A-Z");
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>("");
+  const [currentSearchFilter, setCurrentSearchFilter] = useState("All Fields");
+  
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
     setIsClient(true);
@@ -76,51 +81,29 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
     localStorage.removeItem('selectedItems');
   };
 
-  // Search functionality
-  const handleSearchChange = (query: string) => {
-    if (!query.trim()) {
-      setFilteredItems(allItems);
+  const onFilterChange = async (sortBy: string, searchQuery: string, searchFilter: string) => {
+    //it is important here to notice that states update in react asynchronously. meaning after the function is completed. that's why we pass the arguments down here rather than the updated states. and when the function is compelte, the states become up to date to be used in other functions.
+    setFilteredItems([]);
+    setCurrentSortBy(sortBy);
+    setCurrentSearchQuery(searchQuery);
+    setCurrentSearchFilter(searchFilter);
+
+    console.log(`Filters changed: sortBy=${sortBy}, searchQuery=${searchQuery}, searchFilter=${searchFilter}`);
+
+    const records = await getGalleryPage({page: currentPageNumber, limit: 100, sort: sortBy , searchQuery: searchQuery, searchIn: searchFilter});
+    setFilteredItems(records.books);
+  }
+
+  const onPageChange = async (page: number) => {
+    if (page < 1 || page > pageLimit) {
+      alert(`Please enter a page number between 1 and ${pageLimit}.`);
       return;
     }
-
-    const filtered = allItems.filter(item => {
-      const searchTerm = query.toLowerCase();
-      
-      return (
-        (item.Title?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Creator?.toLowerCase() || '').includes(searchTerm) ||
-        (item['Call number']?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Date?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Description?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Subject?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Notes?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Collection?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Language?.toLowerCase() || '').includes(searchTerm) ||
-        (item.Type?.toLowerCase() || '').includes(searchTerm) ||
-        (item['Title (English)']?.toLowerCase() || '').includes(searchTerm) ||
-        (item['Title (Arabic)']?.toLowerCase() || '').includes(searchTerm) ||
-        (item['Creator (Arabic)']?.toLowerCase() || '').includes(searchTerm)
-      );
-    });
-    setFilteredItems(filtered);
-  };
-
-  // Filter functionality
-  const handleFilterChange = (_filter: string) => {
-    // This can be extended for more specific filtering
-  };
-
-  // Sort functionality
-  const handleSortChange = async () => {
-    const sorted = await getGalleryPage(pageNumber, 100, currentSort);
-    setFilteredItems(sorted.books);
-    console.log(`Sorted by: ${currentSort}`);
-  };
-
-  // Clear filters
-  const handleClearFilters = () => {
-    setFilteredItems(allItems);
-    console.log(`current page in parent should be ${pageNumber}`);
+    setFilteredItems([]);
+    setCurrentPageNumber(page);
+    const records = await getGalleryPage({page: page, limit: 100, sort: currentSortBy , searchQuery: currentSearchQuery, searchIn: currentSearchFilter});
+    setFilteredItems(records.books);
+    console.log(`Page changed to: ${page}`);
   };
 
   return (
@@ -129,10 +112,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
         <div className="w-2/3">
           <div>
             <SearchAndFilter
-              onSearchChange={handleSearchChange}
-              onFilterChange={handleFilterChange}
-            onSortChange={handleSortChange}
-            onClearFilters={handleClearFilters}
+              onFilterChange={onFilterChange}
             />
           </div>
           <div className="mb-6">
@@ -148,7 +128,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
           </div>
         </div>
         <div className="w-1/3">
-          <PageNavigation pageNumber={pageNumber} assignPageNumber={setPageNumber} currentSort={currentSort} setFilteredItems={setFilteredItems} />
+          <PageNavigation pageNumber={currentPageNumber} onPageChange={onPageChange}/>
         </div>
       </div>
 
