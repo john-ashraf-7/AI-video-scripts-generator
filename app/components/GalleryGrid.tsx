@@ -22,7 +22,7 @@ export default function GalleryGrid({ items, selectedItems, onItemSelect }: Gall
         <Item
           key={item._id}
           item={item}
-          isSelected={selectedItems.has(item.id.toString())}
+          isSelected={selectedItems.has(item.id?.toString() || item._id)}
           onSelect={onItemSelect}
         />
       ))}
