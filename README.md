@@ -83,12 +83,14 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - Real-time search and filtering capabilities
 - Sort items by name, creator, or publication year
 - Individual item detail pages with comprehensive metadata
+- Pagination with total counts and page navigation
 
 ### 🔍 **Advanced Search & Filtering**
 - **Multi-field Search**: Search across all metadata fields including title, creator, call number, date, description, subject, notes, collection, language, type, and Arabic titles
-- **Search Filter Options**: Filter search by specific fields (All Fields, Title, Creator, Call Number, Date)
+- **Field-Specific Search**: Filter search by specific fields (All Fields, Title, Creator, Call Number, Date)
 - **Smart Sorting**: Sort by title (A-Z), creator (A-Z), or year (ascending/descending)
 - **Clear Filters**: Reset all filters with one click
+- **Real-time Results**: Instant search results with MongoDB aggregation
 
 ### 🌍 **Enhanced Bilingual Support**
 - Utilizes Arabic titles and creator names for authentic translations
@@ -123,6 +125,7 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Selective Hydration**: Only interactive components are client-side
 - **Minimal JavaScript**: Reduced client-side bundle size
 - **Fast Page Loads**: Static content rendered on server
+- **MongoDB Aggregation**: Efficient database queries with complex sorting
 
 ### 💾 **State Management**
 - Persistent selections using localStorage
@@ -139,6 +142,12 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - Auto-scroll to results section
 - Responsive design for all screen sizes
 
+### 🔧 **Environment Configuration**
+- Environment variable support for flexible deployment
+- Configurable MongoDB connection settings
+- Customizable CORS origins for security
+- Environment-based API configuration
+
 ## 🛠️ Technologies Used
 
 | Category           | Tools                                      |
@@ -151,6 +160,7 @@ The AI Video Script Generator follows a modern microservices architecture with t
 | **Language**           | TypeScript 5.9.2                           |
 | **NLP Libraries**      | Transformers, Torch, SentencePiece         |
 | **Database**           | MongoDB (Motor driver)                     |
+| **Configuration**      | python-dotenv for environment variables    |
 | **Deployment**         | Local (CPU)                                |
 
 ## 📁 Project Structure
@@ -164,6 +174,7 @@ AI-video-scripts-generator/
 ├── package.json                   # Node.js dependencies
 ├── tsconfig.json                  # TypeScript configuration
 ├── next.config.ts                 # Next.js configuration
+├── .env                           # Environment variables (create this)
 ├── app/                           # Next.js App Router
 │   ├── components/                # React components
 │   │   ├── BatchProcessing.tsx    # Batch processing interface
@@ -204,7 +215,28 @@ AI-video-scripts-generator/
 ollama pull llama3:8b
 ```
 
-2. **Set up Python backend:**
+2. **Set up environment variables:**
+```bash
+# Create .env file in project root
+cp .env.example .env
+# Edit .env with your MongoDB credentials and settings
+```
+
+3. **Set up database (required):**
+```bash
+# Get library data from scraper branch (12MB JSON file)
+git checkout scraper
+cp library_data.json ../library_data.json
+git checkout main
+
+# Import data to your MongoDB database
+mongoimport --uri "mongodb+srv://your_username:your_password@your_cluster.mongodb.net/metadata" \
+  --collection "Digital Collection" \
+  --file library_data.json \
+  --jsonArray
+```
+
+4. **Set up Python backend:**
 ```bash
 # Create and activate virtual environment
 python -m venv venv
@@ -217,13 +249,13 @@ pip install -r requirements.txt
 uvicorn main:app --port 8002
 ```
 
-3. **Install frontend dependencies and start:**
+5. **Install frontend dependencies and start:**
 ```bash
 npm install
 npm run dev
 ```
 
-4. **Access the application:**
+6. **Access the application:**
 ```
 http://localhost:3000
 ```
@@ -253,6 +285,7 @@ For issues and questions:
 2. Ensure all services are running (Ollama, Python backend, Next.js frontend)
 3. Verify network connectivity and port availability
 4. Confirm model downloads are complete
+5. Check environment variable configuration
 
 ---
 
