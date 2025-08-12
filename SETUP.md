@@ -58,6 +58,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8002
 You need to populate your MongoDB database with library metadata. The project includes a comprehensive JSON file with library data (approximately 12MB).
 
 1. **Get the data file from the scraper branch:**
+   
+   **Direct link:** [scraper branch](https://github.com/john-ashraf-7/AI-video-scripts-generator/tree/scraper)
+   
    ```bash
    # Switch to the scraper branch to get the data file
    git checkout scraper
