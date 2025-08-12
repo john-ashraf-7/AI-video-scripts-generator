@@ -243,25 +243,128 @@ async def get_book(id: str):
     except:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
+# In your main.py FastAPI backend
 @app.get("/gallery/books")
-async def get_books(page: int = 1, limit: int = 20, sort: str = "name"):
+async def get_books(
+    page: int = 1,
+    limit: int = 20,
+    sort: str = None,              # sort key
+    searchQuery: str = None,       # search input
+    searchIn: str = "All Fields"   # field to search in
+):
     try:
         skip = (page - 1) * limit
+        query = {}
+
+        # SEARCH HANDLING
+        if searchQuery:
+            regex = {"$regex": searchQuery, "$options": "i"}  # case-insensitive
+
+            if searchIn == "All Fields":
+                fields = [
+                    "Title", "Title (English)", "Title (Arabic)", "Creator", "Creator (Arabic)",
+                    "Description", "Subject", "Type", "Collection", "Language",
+                    "Call number", "Date", "Notes"
+                ]
+                query["$or"] = [{f: regex} for f in fields]
+
+            elif searchIn == "Title":
+                # Search in hierarchy: Title -> Title (English) -> Title (Arabic)
+                query["$or"] = [
+                    {"Title": regex},
+                    {"Title (English)": regex},
+                    {"Title (Arabic)": regex}
+                ]
+
+            elif searchIn == "Creator":
+                query["$or"] = [
+                    {"Creator": regex},
+                    {"Creator (Arabic)": regex}
+                ]
+
+            else:
+                query[searchIn] = regex
+
+        # SORTING
         sort_map = {
-            "name": ("Title", 1),
-            "creator": ("Creator", 1),
-            "year": ("Date", 1),
-            "year_desc": ("Date", -1),
+            "Title A-Z": {"field": "sortTitle", "dir": 1},
+            "Creator A-Z": {"field": "sortCreator", "dir": 1},
+            "Year oldest first": {"field": "Date", "dir": 1},
+            "Year newest first": {"field": "Date", "dir": -1}
         }
-        sort_field, sort_order = sort_map.get(sort, ("Title", 1))
-        books_cursor = digital_collection.find().sort(sort_field, sort_order).skip(skip).limit(limit)
-        books = await books_cursor.to_list(length=limit)
-        for book in books:
-            book["_id"] = str(book["_id"])
-        return {"books": books, "page": page, "limit": limit}
+
+        if sort in ["Title A-Z", "Creator A-Z"]:
+            pipeline = [
+                {"$match": query},
+                {
+                    "$addFields": {
+                        "sortTitle": {
+                            "$toLower": {
+                                "$cond": [
+                                    {"$and": [{"$ne": ["$Title", None]}, {"$ne": ["$Title", ""]}]},
+                                    "$Title",
+                                    {
+                                        "$cond": [
+                                            {"$and": [{"$ne": ["$Title (English)", None]}, {"$ne": ["$Title (English)", ""]}]},
+                                            "$Title (English)",
+                                            {"$ifNull": ["$Title (Arabic)", ""]}
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        "sortCreator": {
+                            "$toLower": {
+                                "$cond": [
+                                    {"$and": [{"$ne": ["$Creator", None]}, {"$ne": ["$Creator", ""]}]},
+                                    "$Creator",
+                                    {"$ifNull": ["$Creator (Arabic)", ""]}
+                                ]
+                            }
+                        }
+                    }
+                },
+                {"$sort": {sort_map[sort]["field"]: sort_map[sort]["dir"]}},
+                {"$skip": skip},
+                {"$limit": limit}
+            ]
+
+            books_cursor = digital_collection.aggregate(pipeline)
+            books = await books_cursor.to_list(length=limit)
+
+        else:
+            # Other sorts or default
+            sort_field, sort_dir = ("_id", 1)
+            if sort in sort_map:
+                sort_field = sort_map[sort]["field"]
+                sort_dir = sort_map[sort]["dir"]
+
+            books_cursor = (
+                digital_collection
+                .find(query)
+                .sort(sort_field, sort_dir)
+                .skip(skip)
+                .limit(limit)
+            )
+            books = await books_cursor.to_list(length=limit)
+
+        total_count = await digital_collection.count_documents(query)
+
+        for b in books:
+            b["_id"] = str(b["_id"])
+
+        return {
+            "books": books,
+            "page": page,
+            "limit": limit,
+            "total": total_count,
+            "total_pages": (total_count + limit - 1) // limit
+        }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve books: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-
+    
+    
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8002)

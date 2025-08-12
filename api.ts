@@ -31,45 +31,48 @@ interface GalleryItemMetadata {
  */
 interface GalleryItem {
   _id: string;
-  id: number;
-  Title: string;
-  Creator: string;
-  Date: string;
-  'Call number': string;
-  Description: string;
-  'Image URL': string;
-  'Title (English)': string;
-  'Title (Arabic)': string;
-  'Creator (Arabic)': string;
-  'Location-Governorate (English)': string;
-  'Location-Governorate (Arabic)': string;
-  'Location-Country (English)': string;
-  'Location-Country (Arabic)': string;
-  'Subject LC': string;
-  'Keywords (English)': string;
-  'Keywords (Arabic)': string;
-  Medium: string;
-  Type: string;
-  Collection: string;
-  Source: string;
-  'Access Rights': string;
-  Publisher: string;
-  Notes: string;
-  Location: string;
-  Subject: string;
-  'Genre (AAT)': string;
-  Language: string;
-  Rights: string;
-  'Link to catalogue': string;
+  id?: number | null;
+  Title?: string | null;
+  Creator?: string | null;
+  Date?: string | null;
+  'Call number'?: string | null;
+  Description?: string | null;
+  'Image URL'?: string | null;
+  'Title (English)'?: string | null;
+  'Title (Arabic)'?: string | null;
+  'Creator (Arabic)'?: string | null;
+  'Location-Governorate (English)'?: string | null;
+  'Location-Governorate (Arabic)'?: string | null;
+  'Location-Country (English)'?: string | null;
+  'Location-Country (Arabic)'?: string | null;
+  'Subject LC'?: string | null;
+  'Keywords (English)'?: string | null;
+  'Keywords (Arabic)'?: string | null;
+  Medium?: string | null;
+  Type?: string | null;
+  Collection?: string | null;
+  Source?: string | null;
+  'Access Rights'?: string | null;
+  Publisher?: string | null;
+  Notes?: string | null;
+  Location?: string | null;
+  Subject?: string | null;
+  'Genre (AAT)'?: string | null;
+  Language?: string | null;
+  Rights?: string | null;
+  'Link to catalogue'?: string | null;
 }
 
+
 /**
- * Interface for gallery response
+ * Interface for gallery API response
  */
 interface GalleryResponse {
   books: GalleryItem[];
   page: number;
   limit: number;
+  total: number;        // total matching records in DB
+  total_pages: number;  // total number of pages
 }
 
 /**
@@ -230,31 +233,31 @@ export const getSingleBook = async (_id: string): Promise<GalleryItem> => {
     throw error instanceof Error ? error : new Error(`Book loading failed: ${String(error)}`);
   }
 };
+export async function getGalleryPage({
+  page = 1,
+  limit = 20,
+  sort,
+  searchQuery,
+  searchIn = "All Fields",
+}: {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  searchQuery?: string;
+  searchIn?: string;
+}) {
+  const params = new URLSearchParams();
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
 
-export const getGalleryPage = async (page: number, limit: number, sort: string): Promise<GalleryResponse> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/gallery/books?page=${page}&limit=${limit}&sort=${sort}`);
+  if (sort) params.append("sort", sort);
+  if (searchQuery) params.append("searchQuery", searchQuery);
+  if (searchIn) params.append("searchIn", searchIn);
+  const res = await fetch(`${API_BASE_URL}/gallery/books?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch gallery data");
+  return res.json();
+}
 
-    if (!response.ok) {
-      let errorMessage = 'Failed to load gallery page';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorData.message || errorMessage;
-      } catch {
-        errorMessage = response.statusText || errorMessage;
-      }
-      throw new Error(`API Error (${response.status}): ${errorMessage}`);
-    }
-    
-    const data: GalleryResponse = await response.json();
-    return data;
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('No response from server. Please check if the backend is running.');
-    }
-    throw error instanceof Error ? error : new Error(`Gallery page loading failed: ${String(error)}`);
-  }
-};
 
 /**
  * Export types for use in other components
