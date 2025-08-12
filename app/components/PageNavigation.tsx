@@ -1,22 +1,91 @@
-import {useState} from 'react';
-    
-export default function PageNavigation() {
-  const [currentPage, setCurrentPage] = useState(1);
+'use client'
+import { GalleryItem, getGalleryPage } from "@/api";
+import { useState } from "react";
+import {pageLimit} from "./GalleryData";
+
+interface PageNavigationProps {
+  pageNumber: number;
+  onPageChange: (page: number) => void;
+}
+
+export default function PageNavigation({ pageNumber, onPageChange}: PageNavigationProps) {
+  const [loading, setLoading] = useState(false);
+  const [inputValue, setInputValue] = useState(""); // <-- state for search input
 
   const handlePrevious = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
+    setInputValue("");
+    setLoading(true);
+    onPageChange(Math.max(pageNumber - 1, 1));
+    setLoading(false);
   };
 
-  const handleNext = () => {
-    setCurrentPage(prev => prev + 1);
+  const handleNext =  () => {
+    setInputValue("");
+    setLoading(true);
+    onPageChange(pageNumber + 1);
+    setLoading(false);
   };
+
+  const handleSearch = async (pageNum: number) => {
+    setLoading(true);
+    onPageChange(pageNum);
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-calmRed mx-auto"></div>
+        <span className="ml-4 text-calmRed">Loading...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex gap-4 py-4 bg-darkBeige rounded-lg w-[50%] mx-auto my-4">
-      <span className="px-4 py-2 text-gray-600 font-bold">Page {currentPage}</span>
-      <button className="px-4 py-2 bg-offWhite cursor-pointer hover:bg-gray-200 rounded-md" onClick={handlePrevious}>Previous</button>
-      <button className="px-4 py-2 bg-offWhite cursor-pointer hover:bg-gray-200 rounded-md" onClick={handleNext}>Next</button>
-      <input className="px-4 py-2 bg-offWhite border border-gray-300 rounded-md" type="number" placeholder="Go to page number" min="1" value={currentPage} onChange={(e) => setCurrentPage(Math.max(1, Number(e.target.value)))} />
+  <div className="bg-darkBeige py-6 px-20 rounded-xl shadow-lg flex flex-col h-full w-full justify-between items-center">
+    <div className="flex items-center gap-3">
+      <button
+        className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        onClick={handlePrevious}
+      >
+        &lt;
+      </button>
+
+      <span className="px-3 py-2 text-gray-600 font-bold">
+        Page {pageNumber}
+      </span>
+
+      <button
+        className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        onClick={handleNext}
+      >
+        &gt;
+      </button>
     </div>
-  );
+    <div className="h-full w-full flex items-center justify-center">
+      <img 
+        src="/websiteLayout.png"
+        alt="a website layout"
+        className="object-contain h-full max-h-[130px]"
+      />
+    </div>
+    <div className="flex items-center gap-3">
+      <input
+        type="number"
+        value={inputValue}
+        onChange={e => setInputValue(e.target.value)}
+        placeholder="Page #"
+        className="px-3 py-2 w-48 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+      />
+      <button
+        className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        onClick={() => handleSearch(Number(inputValue))}
+      >
+        Go
+      </button>
+    </div>
+
+  </div>
+);
+
 }

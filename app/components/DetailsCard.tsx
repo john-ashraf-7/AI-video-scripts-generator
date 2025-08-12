@@ -2,19 +2,11 @@
 
 import { GalleryItem } from "@/api";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function DetailsCard({ record, itemId }: { record: Partial<GalleryItem>; itemId?: string }) {
     // Load song images for records without an Image URL
-    const ImageURL = record['Image URL'] || (record.Title?.includes("أغنية") ? "/songs.png" : '');
-
-    // Function to format field names for display
-    const formatFieldName = (key: string): string => {
-        const formatted = key
-            .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-            .replace(/-/g, ' ') // Replace hyphens with spaces
-            .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
-        return formatted;
-    };
+    const ImageURL = record['Image URL'] || (record.Type?.includes("song") ? "/songs.png" : "/imageNotFound.png");
 
     // Filter out empty or undefined fields
     const displayFields = Object.entries(record)
@@ -25,7 +17,9 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
             key !== '_id' && 
             key !== 'id' && 
             key !== 'Image URL' && 
-            key !== 'Title'
+            key !== 'Title' && 
+            key !== 'Title (English)' && 
+            key !== 'Title (Arabic)'
         );
 
     return (
@@ -39,23 +33,20 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
                     <span className="text-lg">←</span>
                     Back
                 </Link>
-                
-                {ImageURL && (
-                    <img 
-                        src={ImageURL} 
-                        alt={record.Title || 'Record image'}
+                  <img
+                        src={ImageURL}
+                        alt="item image"
                         className="w-64 h-64 object-contain rounded-lg mx-auto mb-8 shadow-xl"
                     />
-                )}
 
                 <h1 className="text-3xl font-bold mb-6" style={{color: 'var(--foreground)'}}>
-                    {record.Title || 'Untitled Record'}
+                    {record.Title || record['Title (English)'] || record['Title (Arabic)'] || 'Untitled Record'}
                 </h1>
 
                 <div className="space-y-4 text-left text-lg">
                     {displayFields.map(([key, value]) => (
                         <p key={key} className="text-gray-700">
-                            <strong>{formatFieldName(key)}:</strong> {value}
+                            <strong>{key}:</strong> {value}
                         </p>
                     ))}
                 </div>
