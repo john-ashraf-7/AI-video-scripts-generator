@@ -92,10 +92,10 @@ export default function SearchAndFilter({
               onChange={handleSortChange}
               className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none cursor-pointer"
             >
-              <option value="name">Title A-Z</option>
-              <option value="creator">Creator A-Z</option>
-              <option value="year">Year (Oldest First)</option>
-              <option value="year_desc">Year (Newest First)</option>
+              <option value="Title A-Z">Title A-Z</option>
+              <option value="Creator A-Z">Creator A-Z</option>
+              <option value="Year oldest first">Year oldest first</option>
+              <option value="Year newest first">Year newest first</option>
             </select>
           </div>
         </div>
