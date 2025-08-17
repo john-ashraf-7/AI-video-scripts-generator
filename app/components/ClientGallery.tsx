@@ -143,6 +143,16 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
     localStorage.removeItem('selectedItems');
   };
 
+  // Deselect individual item
+  const handleDeselectItem = (itemId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      localStorage.setItem('selectedItems', JSON.stringify([...newSet]));
+      return newSet;
+    });
+  };
+
   const onFilterChange = async (sortBy: string, searchQuery: string, searchFilter: string) => {
     //it is important here to notice that states update in react asynchronously. meaning after the function is completed. that's why we pass the arguments down here rather than the updated states. and when the function is compelte, the states become up to date to be used in other functions.
     console.log('onFilterChange called with:', { sortBy, searchQuery, searchFilter });
@@ -234,8 +244,8 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
       {/* Batch Processing - Moved outside of fixed height container */}
       <BatchProcessing 
         selectedItems={selectedItems}
-        allItems={filteredItems}
         onClearSelection={handleClearSelection}
+        onDeselectItem={handleDeselectItem}
         setFilteredItems={setFilteredItems}
         clearResults={clearResults}
         setHasBatchResults={setHasBatchResults}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GalleryItem, type ScriptGenerationResponse } from '../../api';
 import ScriptViewer from './ScriptViewer';
+import SelectedItemsView from './SelectedItemsView';
 
 interface BatchResult {
   item: GalleryItem;
@@ -11,14 +12,14 @@ interface BatchResult {
 
 interface BatchProcessingProps {
   selectedItems: Set<string>;
-  allItems?: GalleryItem[]; // Optional for visual indicators
   onClearSelection: () => void;
+  onDeselectItem: (itemId: string) => void;
   setFilteredItems: (items: GalleryItem[]) => void;
   clearResults: () => void;
   setHasBatchResults: (hasResults: boolean) => void;
 }
 
-export default function BatchProcessing({ selectedItems, allItems = [], onClearSelection, setFilteredItems, clearResults, setHasBatchResults}: BatchProcessingProps) {
+export default function BatchProcessing({ selectedItems, onClearSelection, onDeselectItem, setFilteredItems, clearResults, setHasBatchResults}: BatchProcessingProps) {
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
@@ -171,28 +172,18 @@ export default function BatchProcessing({ selectedItems, allItems = [], onClearS
 
   return (
     <div>
-      {/* Selection Controls */}
+      {/* Selected Items View */}
+      {selectedItems.size > 0 && (
+        <SelectedItemsView
+          selectedItems={selectedItems}
+          onDeselectItem={onDeselectItem}
+          onClearAll={onClearSelection}
+        />
+      )}
+
+      {/* Process Button */}
       {selectedItems.size > 0 && (
         <div className="flex items-center space-x-4 mb-6">
-          <div className="bg-calmRed text-white px-4 py-2 rounded-lg">
-            {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected
-          </div>
-          
-          {/* Show warning if some selected items are not in current results */}
-          {(() => {
-            const availableItemIds = new Set(allItems.map(item => item._id));
-            const missingItems = Array.from(selectedItems).filter(id => !availableItemIds.has(id));
-            if (missingItems.length > 0) {
-              return (
-                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-2 rounded-lg">
-                  ℹ️ {missingItems.length} selected item{missingItems.length !== 1 ? 's' : ''} not in current results. 
-                  Your selections are preserved and will be processed.
-                </div>
-              );
-            }
-            return null;
-          })()}
-          
           <button
             onClick={handleBatchProcess}
             disabled={batchProcessing}
@@ -206,12 +197,6 @@ export default function BatchProcessing({ selectedItems, allItems = [], onClearS
             ) : (
               `Process ${selectedItems.size} Items`
             )}
-          </button>
-          <button
-            onClick={onClearSelection}
-            className="bg-gray-500 cursor-pointer text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-          >
-            Clear Selection
           </button>
         </div>
       )}
