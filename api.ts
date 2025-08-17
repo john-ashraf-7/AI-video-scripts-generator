@@ -109,6 +109,48 @@ interface RegenerateScriptRequest {
 }
 
 /**
+ * Interface for TTS voice information
+ */
+interface TTSVoice {
+  id: string;
+  name: string;
+  language: string;
+  gender: string;
+  style: string;
+  downloaded: boolean;
+}
+
+/**
+ * Interface for TTS voices response
+ */
+interface TTSVoicesResponse {
+  voices: TTSVoice[];
+}
+
+/**
+ * Interface for audio generation request
+ */
+interface AudioGenerationRequest {
+  script: string;
+  voice_id?: string;
+  output_filename?: string;
+}
+
+/**
+ * Interface for audio generation response
+ */
+interface AudioGenerationResponse {
+  success: boolean;
+  audio_path?: string;
+  filename?: string;
+  duration_seconds?: number;
+  voice_used?: string;
+  voice_name?: string;
+  file_size_mb?: number;
+  error?: string;
+}
+
+/**
  * Health Check API
  * 
  * Checks if the backend API is running and accessible.
@@ -314,6 +356,114 @@ export async function getGalleryPage({
 
 
 /**
+ * Get Available TTS Voices API
+ * 
+ * Retrieves the list of available text-to-speech voices from the backend.
+ * 
+ * @returns Promise<TTSVoicesResponse> - List of available voices
+ * @throws Error if the voices cannot be retrieved
+ */
+export const getTTSVoices = async (): Promise<TTSVoicesResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tts/voices`);
+    
+    if (!response.ok) {
+      let errorMessage = 'Failed to load TTS voices';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    
+    const data: TTSVoicesResponse = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`TTS voices loading failed: ${String(error)}`);
+  }
+};
+
+/**
+ * Generate Audio from Script API
+ * 
+ * Converts a script text to speech using the specified voice.
+ * 
+ * @param requestData - The audio generation request with script and voice settings
+ * @returns Promise<AudioGenerationResponse> - Generated audio information
+ * @throws Error if the audio generation fails
+ */
+export const generateAudio = async (
+  requestData: AudioGenerationRequest
+): Promise<AudioGenerationResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tts/generate-audio`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData),
+    });
+    
+    if (!response.ok) {
+      let errorMessage = 'Audio generation failed';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    
+    const data: AudioGenerationResponse = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`Audio generation failed: ${String(error)}`);
+  }
+};
+
+/**
+ * Download Audio File API
+ * 
+ * Downloads a generated audio file from the server.
+ * 
+ * @param filename - The name of the audio file to download
+ * @returns Promise<Blob> - The audio file as a blob
+ * @throws Error if the download fails
+ */
+export const downloadAudio = async (filename: string): Promise<Blob> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tts/download/${filename}`);
+    
+    if (!response.ok) {
+      let errorMessage = 'Failed to download audio file';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    
+    return await response.blob();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`Audio download failed: ${String(error)}`);
+  }
+};
+
+/**
  * Export types for use in other components
  */
 export type {
@@ -324,4 +474,8 @@ export type {
   ScriptGenerationRequest,
   ScriptGenerationResponse,
   RegenerateScriptRequest,
+  TTSVoice,
+  TTSVoicesResponse,
+  AudioGenerationRequest,
+  AudioGenerationResponse,
 };

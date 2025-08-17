@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 from AIScript import ScriptGenerator
 from motor.motor_asyncio import AsyncIOMotorClient 
 from bson import ObjectId
+from tts_service import tts_service
 
 # Load environment variables
 load_dotenv()
@@ -75,6 +77,16 @@ class RegenerateScriptRequest(BaseModel):
     artifact_type: str
     user_comments: str
     original_script: str
+
+
+class AudioGenerationRequest(BaseModel):
+    script: str
+    voice_id: Optional[str] = "en_US-amy-low"
+    output_filename: Optional[str] = None
+
+
+class VoiceSelectionRequest(BaseModel):
+    voice_id: str
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -322,6 +334,153 @@ async def get_book(id: str):
         raise HTTPException(status_code=404, detail=f"Student {id} not found")
     except:
         raise HTTPException(status_code=400, detail="Invalid ID format")
+
+
+@app.get("/tts/voices")
+async def get_available_voices():
+    """Get list of available TTS voices."""
+    try:
+        voices = tts_service.get_available_voices()
+        return {"voices": voices}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to get available voices: {str(e)}"
+        )
+
+
+@app.post("/tts/set-voice")
+async def set_voice(request: VoiceSelectionRequest):
+    """Set the current TTS voice."""
+    try:
+        tts_service.set_voice(request.voice_id)
+        return {
+            "success": True,
+            "message": f"Voice set to: {request.voice_id}",
+            "voice_name": tts_service.voice_models[request.voice_id]["name"]
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to set voice: {str(e)}"
+        )
+
+
+@app.post("/tts/generate-audio")
+async def generate_audio(request: AudioGenerationRequest):
+    """Generate audio from script text."""
+    try:
+        result = tts_service.generate_script_audio(
+            script=request.script,
+            voice_id=request.voice_id,
+            output_filename=request.output_filename
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Audio generation failed: {result['error']}"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Audio generation failed: {str(e)}"
+        )
+
+
+@app.get("/tts/download/{filename}")
+async def download_audio(filename: str):
+    """Download generated audio file."""
+    try:
+        file_path = f"audio_output/{filename}"
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=404,
+                detail="Audio file not found"
+            )
+        
+        # Determine media type based on file extension
+        if filename.lower().endswith('.mp3'):
+            media_type = "audio/mpeg"
+        elif filename.lower().endswith('.wav'):
+            media_type = "audio/wav"
+        else:
+            media_type = "audio/wav"  # Default
+        
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type=media_type
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to download audio: {str(e)}"
+        )
+
+
+@app.post("/generate-script-with-audio")
+async def generate_script_with_audio(request: MetadataRequest):
+    """Generate a video script with audio from metadata."""
+    try:
+        # Generate script first
+        factual_summary = None
+        if request.artifact_type == "publication_deep_dive":
+            factual_summary = script_generator._generate_factual_summary(
+                request.metadata
+            )
+
+        prompt = script_generator._create_prompt(
+            request.metadata, request.artifact_type, factual_summary
+        )
+
+        raw_script = script_generator._send_prompt_to_ollama(prompt)
+        script = script_generator._clean_raw_script(raw_script)
+        qc_passed, qc_message = script_generator._quality_check(script)
+
+        result = {
+            "english_script": script,
+            "qc_passed": qc_passed,
+            "qc_message": qc_message,
+            "arabic_translation_refined": None,
+            "audio_generated": False,
+            "audio_info": None
+        }
+
+        # Generate Arabic translation if QC passed
+        if qc_passed:
+            try:
+                arabic_translation = script_generator.translate_to_arabic(script)
+                refined_arabic = script_generator.refine_translation_with_ollama(
+                    arabic_translation
+                )
+                result["arabic_translation_refined"] = refined_arabic
+            except Exception as e:
+                result["arabic_translation_refined"] = f"Translation failed: {str(e)}"
+
+        # Generate audio for the script
+        try:
+            audio_result = tts_service.generate_script_audio(script=script)
+            if audio_result["success"]:
+                result["audio_generated"] = True
+                result["audio_info"] = audio_result
+            else:
+                result["audio_info"] = {"error": audio_result["error"]}
+        except Exception as e:
+            result["audio_info"] = {"error": f"Audio generation failed: {str(e)}"}
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Script and audio generation failed: {str(e)}"
+        )
+
 
 # In your main.py FastAPI backend
 @app.get("/gallery/books")

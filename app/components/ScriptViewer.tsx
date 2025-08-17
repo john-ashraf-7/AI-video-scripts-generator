@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { type ScriptGenerationResponse, type GalleryItemMetadata } from "../../api";
+import { type ScriptGenerationResponse, type GalleryItemMetadata, type AudioGenerationResponse } from "../../api";
 import RegenerateScript from "./RegenerateScript";
+import GenerateAudio from "./GenerateAudio";
 
 /**
  * Props interface for the ScriptViewer component
@@ -143,14 +144,25 @@ export default function ScriptViewer({ result, metadata, artifactType, onRegener
         </div>
       )}
 
-      {/* Regenerate Script Section */}
+      {/* Action Buttons Section */}
       {metadata && artifactType && currentResult.english_script && !currentResult.error && (
-        <RegenerateScript
-          originalMetadata={metadata}
-          originalScript={currentResult.english_script}
-          artifactType={artifactType}
-          onRegenerate={handleRegenerate}
-        />
+        <div className="space-y-4">
+          {/* Generate Audio Section */}
+          <GenerateAudio
+            script={currentResult.english_script}
+            onAudioGenerated={(audioInfo) => {
+              console.log("Audio generated:", audioInfo);
+            }}
+          />
+          
+          {/* Regenerate Script Section */}
+          <RegenerateScript
+            originalMetadata={metadata}
+            originalScript={currentResult.english_script}
+            artifactType={artifactType}
+            onRegenerate={handleRegenerate}
+          />
+        </div>
       )}
     </div>
   );

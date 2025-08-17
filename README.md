@@ -98,6 +98,14 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - Quality control validation for translation accuracy
 - Bilingual script output (English/Arabic)
 
+### 🎤 **Text-to-Speech Audio Generation**
+- **Natural Voice Synthesis**: Generate high-quality audio using Piper TTS
+- **Multiple Voice Options**: Choose from male/female voices with different styles (natural, professional, casual)
+- **Instagram Optimization**: Audio automatically optimized for Instagram video format
+- **Low Resource Usage**: Designed to work efficiently on university PCs
+- **Easy Integration**: Simple API endpoints for seamless audio generation
+- **Download Support**: Direct download of generated audio files
+
 ### 📊 **Rich Metadata Processing**
 - Scripts incorporate comprehensive academic metadata:
   - Arabic titles and creator names for authentic bilingual content
@@ -154,11 +162,13 @@ The AI Video Script Generator follows a modern microservices architecture with t
 |--------------------|--------------------------------------------|
 | **Language Models**    | [Ollama](https://ollama.ai/) + Llama3.2:8B |
 | **Translation**        | Helsinki-NLP Arabic translation models      |
+| **Text-to-Speech**     | [Piper TTS](https://github.com/rhasspy/piper) |
 | **Backend**            | Python 3.8+, FastAPI, Uvicorn              |
 | **Frontend**           | Next.js 15.4.4 (React 19) with App Router  |
 | **Styling**            | Tailwind CSS 4.0                           |
 | **Language**           | TypeScript 5.9.2                           |
 | **NLP Libraries**      | Transformers, Torch, SentencePiece         |
+| **Audio Processing**   | Pydub, NumPy, SciPy                        |
 | **Database**           | MongoDB (Motor driver)                     |
 | **Configuration**      | python-dotenv for environment variables    |
 | **Deployment**         | Local (CPU)                                |
@@ -169,12 +179,15 @@ The AI Video Script Generator follows a modern microservices architecture with t
 AI-video-scripts-generator/
 ├── AIScript.py                    # Main AI engine and script generation
 ├── main.py                        # FastAPI backend server
+├── tts_service.py                 # Text-to-Speech service
 ├── api.ts                         # Frontend API client
 ├── requirements.txt               # Python dependencies
 ├── package.json                   # Node.js dependencies
 ├── tsconfig.json                  # TypeScript configuration
 ├── next.config.ts                 # Next.js configuration
 ├── .env                           # Environment variables (create this)
+├── audio_output/                  # Generated audio files
+├── tts_models/                    # Downloaded TTS voice models
 ├── app/                           # Next.js App Router
 │   ├── components/                # React components
 │   │   ├── BatchProcessing.tsx    # Batch processing interface
@@ -184,6 +197,7 @@ AI-video-scripts-generator/
 │   │   ├── GalleryData.tsx        # Gallery data management
 │   │   ├── GalleryGrid.tsx        # Grid layout component
 │   │   ├── GenerateButton.tsx     # Script generation button
+│   │   ├── GenerateAudio.tsx      # Audio generation component
 │   │   ├── Header.tsx             # Application header
 │   │   ├── Item.tsx               # Individual item component
 │   │   ├── PageNavigation.tsx     # Pagination component
@@ -246,6 +260,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Install Piper TTS (for audio generation)
+pip install piper-tts
+
 # Start backend server
 uvicorn main:app --port 8002
 ```
@@ -261,7 +278,17 @@ npm run dev
 http://localhost:3000
 ```
 
+**🎤 TTS Feature**: After generating a script, click the "Generate Audio" button to convert it to speech using natural-sounding voices.
+
+7. **Test TTS functionality (optional):**
+```bash
+# The TTS feature is automatically available in the web interface
+# Click "Generate Audio" button next to any generated script
+```
+
 For detailed setup instructions, see [SETUP.md](./SETUP.md).
+
+For TTS-specific documentation, see [TTS_README.md](./TTS_README.md).
 
 ## 📅 Development Timeline
 
