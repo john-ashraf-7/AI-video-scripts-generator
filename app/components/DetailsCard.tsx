@@ -5,7 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-export default function DetailsCard({ record, itemId }: { record: Partial<GalleryItem>; itemId?: string }) {
+export default function DetailsCard({ 
+    record, 
+    itemId, 
+    searchParams 
+}: { 
+    record: Partial<GalleryItem>; 
+    itemId?: string;
+    searchParams?: {[key: string]: string | string[] | undefined};
+}) {
     const router = useRouter();
     
     // Load song images for records without an Image URL
@@ -24,6 +32,40 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
             key !== 'Title (English)' && 
             key !== 'Title (Arabic)'
         );
+
+    const handleBackNavigation = () => {
+        // Priority: Use searchParams from URL, then localStorage, then fallback
+        if (searchParams) {
+            // Use search parameters from URL
+            const params = new URLSearchParams();
+            if (searchParams.search) params.append('search', searchParams.search as string);
+            if (searchParams.filter) params.append('filter', searchParams.filter as string);
+            if (searchParams.sort) params.append('sort', searchParams.sort as string);
+            if (searchParams.page) params.append('page', searchParams.page as string);
+            
+            router.push(`/?${params.toString()}`);
+        } else {
+            // Fallback to localStorage search state
+            const searchState = localStorage.getItem('searchState');
+            
+            if (searchState) {
+                const { searchQuery, searchFilter, sortBy, pageNumber } = JSON.parse(searchState);
+                
+                // Create a URL that preserves the exact search state
+                const params = new URLSearchParams();
+                if (searchQuery) params.append('search', searchQuery);
+                if (searchFilter) params.append('filter', searchFilter);
+                if (sortBy) params.append('sort', sortBy);
+                if (pageNumber) params.append('page', pageNumber.toString());
+                
+                // Navigate back with preserved state
+                router.push(`/?${params.toString()}`);
+            } else {
+                // Fallback to home page if no search state
+                router.push('/');
+            }
+        }
+    };
 
     const handleAddToSelection = () => {
         // Get current search state from localStorage
@@ -57,14 +99,14 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
     return (
         <div className="flex justify-center items-center min-h-screen p-4">
             <div className="bg-darkBeige rounded-lg shadow-2xl p-12 max-w-2xl w-full text-center relative">
-                <Link 
-                    href="/"
+                <button 
+                    onClick={handleBackNavigation}
                     className="absolute top-6 left-6 px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 hover:scale-105 shadow-md flex items-center gap-2 cursor-pointer"
                     style={{backgroundColor: 'var(--color-calmRed)', color: 'white'}}
                 >
                     <span className="text-lg">←</span>
                     Back
-                </Link>
+                </button>
                   <img
                         src={ImageURL}
                         alt="item image"

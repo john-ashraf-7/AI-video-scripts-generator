@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { GalleryItem } from '../../api';
 
 interface SelectedItemsViewProps {
@@ -20,6 +21,7 @@ interface SelectedItemDetails {
 export default function SelectedItemsView({ selectedItems, onDeselectItem, onClearAll }: SelectedItemsViewProps) {
   const [selectedItemDetails, setSelectedItemDetails] = useState<SelectedItemDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Fetch details for selected items
   useEffect(() => {
@@ -76,6 +78,28 @@ export default function SelectedItemsView({ selectedItems, onDeselectItem, onCle
     fetchSelectedItemDetails();
   }, [selectedItems]);
 
+  const handleViewDetails = (itemId: string) => {
+    // Get current search state from localStorage
+    const searchState = localStorage.getItem('searchState');
+    
+    if (searchState) {
+      const { searchQuery, searchFilter, sortBy, pageNumber } = JSON.parse(searchState);
+      
+      // Create a URL that preserves the search state
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (searchFilter) params.append('filter', searchFilter);
+      if (sortBy) params.append('sort', sortBy);
+      if (pageNumber) params.append('page', pageNumber.toString());
+      
+      // Navigate to detail page with preserved state
+      router.push(`/Record/${itemId}?${params.toString()}`);
+    } else {
+      // Navigate without search state if none exists
+      router.push(`/Record/${itemId}`);
+    }
+  };
+
   if (selectedItems.size === 0) {
     return null;
   }
@@ -124,13 +148,22 @@ export default function SelectedItemsView({ selectedItems, onDeselectItem, onCle
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => onDeselectItem(item._id)}
-                  className="ml-3 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm transition-colors flex-shrink-0"
-                  title="Remove from selection"
-                >
-                  ✕
-                </button>
+                <div className="ml-3 flex flex-col gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleViewDetails(item._id)}
+                    className="bg-calmRed hover:bg-opacity-90 text-white px-2 py-1 rounded text-sm transition-colors"
+                    title="View full details"
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => onDeselectItem(item._id)}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-sm transition-colors"
+                    title="Remove from selection"
+                  >
+                    ✕ Remove
+                  </button>
+                </div>
               </div>
             </div>
           ))}
