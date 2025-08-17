@@ -89,8 +89,19 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Multi-field Search**: Search across all metadata fields including title, creator, call number, date, description, subject, notes, collection, language, type, and Arabic titles
 - **Field-Specific Search**: Filter search by specific fields (All Fields, Title, Creator, Call Number, Date)
 - **Smart Sorting**: Sort by title (A-Z), creator (A-Z), or year (ascending/descending)
+- **Enter Key Search**: Press Enter in search box to instantly apply filters (no need to click Apply button)
 - **Clear Filters**: Reset all filters with one click
 - **Real-time Results**: Instant search results with MongoDB aggregation
+- **Persistent Search State**: Search filters, sort preferences, and page numbers are preserved across navigation
+- **URL State Management**: Search state is maintained in URL parameters for bookmarking and sharing
+
+### 🎬 **Script Regeneration & Enhancement**
+- **Comment-Based Regeneration**: Regenerate scripts with specific user comments and feedback
+- **Direct Enhancement**: No formal feedback storage - immediate script improvement based on comments
+- **Enhanced Prompts**: AI incorporates user comments to improve script quality, add details, or modify style
+- **Example Comments**: "Add more details about the author", "Make it more engaging", "Include specific book themes"
+- **Seamless Integration**: Regeneration button appears directly in script viewer for easy access
+- **Quality Improvement**: Iteratively enhance scripts until satisfaction
 
 ### 🌍 **Enhanced Bilingual Support**
 - Utilizes Arabic titles and creator names for authentic translations
@@ -122,6 +133,10 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - Progress counters ("Processing... (2/5)")
 - Completion notifications with visual feedback
 - Persistent batch results across navigation
+- **Cross-Filter Selection**: Selected items remain selected even when changing search filters or navigating between pages
+- **Database-First Processing**: Selected items are fetched directly from database using their IDs, ensuring all selections are processed regardless of current view
+- **Visual Selection Indicators**: Clear indication of selected items not currently visible in filtered results
+- **Persistent State**: Selections survive search, filter, and page changes using localStorage
 
 ### 🎬 **Quality Control & Export**
 - Built-in validation and format preservation for Arabic translations
@@ -145,11 +160,14 @@ The AI Video Script Generator follows a modern microservices architecture with t
 
 ### 🔗 **Navigation & User Experience**
 - Individual item detail pages with comprehensive metadata display
-- "Add to selection" functionality from detail pages
-- Back navigation with preserved state
+- "Add to selection" functionality from detail pages with preserved search state
+- Back navigation with preserved state (search filters, selections, page numbers)
 - Loading indicators and disabled states during processing
 - Auto-scroll to results section
 - Responsive design for all screen sizes
+- **Balanced UI Layout**: Optimized proportions for search filters, page navigation, and content areas
+- **Enhanced Page Navigation**: Streamlined pagination controls with improved spacing and sizing
+- **Search State Preservation**: Complete search context maintained when navigating to detail pages and back
 
 ### 🔧 **Environment Configuration**
 - Environment variable support for flexible deployment
@@ -202,6 +220,7 @@ AI-video-scripts-generator/
 │   │   ├── Header.tsx             # Application header
 │   │   ├── Item.tsx               # Individual item component
 │   │   ├── PageNavigation.tsx     # Pagination component
+│   │   ├── RegenerateScript.tsx   # Script regeneration with comments
 │   │   ├── ScriptViewer.tsx       # Script display component
 │   │   └── SearchAndFilter.tsx    # Search and filter interface
 │   ├── Record/[id]/               # Dynamic record pages
