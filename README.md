@@ -301,7 +301,10 @@ AI-video-scripts-generator/
    # On Windows:
    venv\Scripts\activate
 
-   # Install dependencies
+   # Install dependencies (EASIEST OPTION - Automatic installer)
+   python install_dependencies.py
+   
+   # OR install dependencies manually (Alternative)
    pip install -r requirements.txt
 
    # Install Piper TTS (for audio generation)

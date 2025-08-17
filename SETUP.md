@@ -134,6 +134,32 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
 ## 🔧 Step 7: Set Up Python Backend
 
+### **Automatic Dependency Installation (Recommended)**
+
+The project includes an automatic dependency installer that handles all Python package installation and verification:
+
+```bash
+python install_dependencies.py
+```
+
+**Features of the automatic installer:**
+- ✅ Installs all packages from `requirements.txt`
+- ✅ Verifies each package can be imported successfully
+- ✅ Checks version requirements are met
+- ✅ Detects virtual environment usage
+- ✅ Provides detailed error reporting
+- ✅ Cross-platform compatibility
+- ✅ System compatibility checks
+
+**What the installer does:**
+1. **System Detection**: Identifies your Python version, platform, and architecture
+2. **Virtual Environment Check**: Warns if not using a virtual environment
+3. **Package Installation**: Installs all required packages with pip
+4. **Import Verification**: Tests that each package can be imported
+5. **Version Validation**: Ensures installed versions meet requirements
+6. **System Checks**: Verifies key packages work correctly
+7. **Summary Report**: Shows installation results and any issues
+
 1. **Create a virtual environment (recommended):**
    ```bash
    # Create virtual environment
@@ -150,8 +176,20 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
 2. **Install Python dependencies:**
    ```bash
+   # EASIEST OPTION - Automatic installer (recommended)
+   python install_dependencies.py
+   
+   # Alternative - Manual installation
    pip install -r requirements.txt
    ```
+
+   **💡 Pro Tip:** The automatic installer (`install_dependencies.py`) is the easiest way to set up dependencies as it:
+   - Installs all packages from `requirements.txt`
+   - Verifies each package can be imported successfully
+   - Checks version requirements are met
+   - Detects virtual environment usage
+   - Provides detailed error reporting
+   - Runs system compatibility checks
 
 3. **Start the FastAPI backend server:**
    ```bash
@@ -236,164 +274,4 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
 1. **"Ollama server is not accessible"**
    - Make sure `ollama serve` is running
-   - Check if the model is downloaded: `ollama list`
-   - Verify Ollama is accessible at `http://localhost:11434`
-
-2. **"API not reachable"**
-   - Ensure the Python backend is running (`uvicorn main:app --port 8002`)
-   - Check if port 8002 is available
-   - Verify the backend is accessible at `http://localhost:8002`
-
-3. **"MongoDB connection failed"**
-   - Check your `.env` file has correct MongoDB credentials
-   - Verify your MongoDB Atlas cluster is accessible
-   - Ensure your IP address is whitelisted in MongoDB Atlas
-
-4. **"Translation failed"**
-   - This is normal for the first run as models download
-   - Subsequent runs should work faster
-   - Check if the Helsinki-NLP models are properly loaded
-
-5. **"Module not found" errors**
-   - Make sure you're in the virtual environment (check for `(venv)` in terminal)
-   - Activate virtual environment: `source venv/bin/activate` (macOS/Linux) or `venv\Scripts\activate` (Windows)
-   - Reinstall dependencies: `pip install -r requirements.txt`
-   - Check Python version compatibility (3.8+)
-   - Verify virtual environment is created: `ls venv/` or `dir venv\`
-
-6. **"Next.js build errors"**
-   - Clear Next.js cache:
-     ```bash
-     # macOS/Linux:
-     rm -rf .next
-     # Windows:
-     rmdir /s .next
-     ```
-   - Reinstall dependencies:
-     ```bash
-     # macOS/Linux:
-     rm -rf node_modules && npm install
-     # Windows:
-     rmdir /s node_modules && npm install
-     ```
-   - Check TypeScript configuration in `tsconfig.json`
-
-7. **"Environment variables not found"**
-   - Ensure `.env` file exists in project root
-   - Check that all required variables are set
-   - Restart the backend server after changing `.env`
-
-8. **"No data in gallery"**
-   - **Required:** Import the library data from the scraper branch
-   - Check that your MongoDB collection is named "Digital Collection"
-   - Verify the data import was successful
-   - The JSON file is approximately 12MB and contains comprehensive library metadata
-
-### Port Conflicts:
-
-If you get port conflicts, you can change the ports:
-
-- **Backend**: Use a different port with uvicorn: `uvicorn main:app --port 8003`
-- **Frontend**: Edit `api.ts` and change the `API_BASE_URL` to match the new backend port
-
-### Model Issues:
-
-- **Slow performance**: Consider using `llama3.2:3b` instead of `llama3:8b`
-- **Memory issues**: Ensure you have at least 8GB RAM available
-- **Model not found**: Run `ollama list` to see available models
-
-## 📁 Project Structure
-
-```
-AI-video-scripts-generator/
-├── AIScript.py                    # Main AI engine and script generation
-├── main.py                        # FastAPI backend server
-├── api.ts                         # Frontend API client
-├── requirements.txt               # Python dependencies
-├── package.json                   # Node.js dependencies
-├── tsconfig.json                  # TypeScript configuration
-├── next.config.ts                 # Next.js configuration
-├── .env                           # Environment variables (create this)
-├── app/                           # Next.js App Router
-│   ├── components/                # React components
-│   │   ├── BatchProcessing.tsx    # Batch processing interface
-│   │   ├── ClientGallery.tsx      # Client-side gallery component
-│   │   ├── DetailsCard.tsx        # Item details display
-│   │   ├── Footer.tsx             # Application footer
-│   │   ├── GalleryData.tsx        # Gallery data management
-│   │   ├── GalleryGrid.tsx        # Grid layout component
-│   │   ├── GenerateButton.tsx     # Script generation button
-│   │   ├── Header.tsx             # Application header
-│   │   ├── Item.tsx               # Individual item component
-│   │   ├── PageNavigation.tsx     # Pagination component
-│   │   ├── ScriptViewer.tsx       # Script display component
-│   │   └── SearchAndFilter.tsx    # Search and filter interface
-│   ├── Record/[id]/               # Dynamic record pages
-│   ├── globals.css                # Global styles
-│   ├── layout.tsx                 # Root layout
-│   ├── loading.tsx                # Loading component
-│   └── page.tsx                   # Main page
-├── public/                        # Static assets
-│   └── favicon.ico               # Application icon
-├── sample_data.jsonl              # Sample library data
-└── README.md                      # Project documentation
-```
-
-## 🛠️ Technology Stack
-
-### Backend
-- **Python 3.8+**: Core programming language
-- **FastAPI**: Modern web framework for APIs
-- **Uvicorn**: ASGI server for FastAPI
-- **Transformers**: Hugging Face transformers library
-- **Torch**: PyTorch for machine learning
-- **SentencePiece**: Text tokenization
-- **Motor**: Async MongoDB driver
-- **python-dotenv**: Environment variable management
-
-### Frontend
-- **Next.js 15.4.4**: React framework with App Router
-- **React 19.1.0**: UI library
-- **TypeScript 5.9.2**: Type-safe JavaScript
-- **Tailwind CSS 4.0**: Utility-first CSS framework
-
-### AI/ML
-- **Ollama**: Local LLM inference
-- **Llama3.2:8B**: Language model for script generation
-- **Helsinki-NLP**: Arabic translation models
-
-### Database
-- **MongoDB Atlas**: Cloud NoSQL database
-- **Motor**: Async MongoDB driver for Python
-
-## 🎉 You're Ready!
-
-The application should now be fully functional. You can:
-
-- **Browse Library Collection**: Interactive gallery with advanced search, filter, and sort capabilities
-- **Rich Metadata Processing**: Scripts utilize comprehensive metadata including Arabic titles, publishers, subjects, and institutional context
-- **Batch Processing**: Generate scripts for multiple items with progress tracking
-- **Bilingual Output**: Get automatic Arabic translations with format preservation
-- **Quality Control**: View quality control results and validation
-- **Enhanced User Experience**: Loading indicators, auto-scroll, and completion notifications
-- **Environment Configuration**: Flexible deployment with environment variables
-
-## 📞 Support
-
-If you encounter any issues, check:
-1. All services are running (Ollama, Python backend, Next.js frontend)
-2. Network connectivity
-3. Port availability
-4. Model downloads are complete
-5. Python and Node.js versions are compatible
-6. Environment variables are properly configured
-7. MongoDB Atlas connection is working
-
-For additional help:
-- Check the [README.md](./README.md) for project overview
-- Review the troubleshooting section above
-- Ensure all prerequisites are met
-- Verify your `.env` file configuration
-- For Text-to-Speech (TTS) features, see [TTS_README.md](./TTS_README.md)
-
-Happy script generating! 🎬 
+   - Check if the model is downloaded: `
