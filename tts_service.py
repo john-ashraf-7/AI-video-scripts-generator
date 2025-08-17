@@ -52,14 +52,7 @@ class TTSService:
                 "url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx",
                 "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx.json"
             },
-            "en_US-common_voice-low": {
-                "name": "Common Voice (Male, Casual)",
-                "language": "en_US",
-                "gender": "male",
-                "style": "casual", 
-                "url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/common_voice/low/en_US-common_voice-low.onnx",
-                "config_url": "https://huggingface.co/rhasspy/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/common_voice/low/en_US-common_voice-low.onnx.json"
-            }
+
         }
         
         self.current_model = "en_US-amy-low"
@@ -108,6 +101,14 @@ class TTSService:
             logger.info(f"Successfully downloaded model: {model_key}")
             return True
             
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                logger.error(f"Rate limit exceeded for model {model_key}. Please try again later.")
+            elif e.response.status_code == 404:
+                logger.error(f"Model {model_key} not found. The model may have been removed or the URL is incorrect.")
+            else:
+                logger.error(f"HTTP error downloading model {model_key}: {str(e)}")
+            return False
         except Exception as e:
             logger.error(f"Failed to download model {model_key}: {str(e)}")
             return False

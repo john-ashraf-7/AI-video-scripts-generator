@@ -146,7 +146,7 @@ export default function ScriptViewer({ result, metadata, artifactType, onRegener
 
       {/* Action Buttons Section */}
       {metadata && artifactType && currentResult.english_script && !currentResult.error && (
-        <div className="space-y-4">
+        <div className="flex flex-wrap gap-4">
           {/* Generate Audio Section */}
           <GenerateAudio
             script={currentResult.english_script}
