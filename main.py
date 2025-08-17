@@ -372,8 +372,7 @@ async def generate_audio(request: AudioGenerationRequest):
     try:
         result = tts_service.generate_script_audio(
             script=request.script,
-            voice_id=request.voice_id,
-            output_filename=request.output_filename
+            voice_id=request.voice_id
         )
         
         if result["success"]:
@@ -390,11 +389,44 @@ async def generate_audio(request: AudioGenerationRequest):
         )
 
 
+@app.post("/tts/save-audio")
+async def save_audio_for_download(request: dict):
+    """Save audio data to temporary file for download."""
+    try:
+        audio_data = request.get("audio_data")
+        filename = request.get("filename", f"script_audio_{int(time.time())}.wav")
+        
+        if not audio_data:
+            raise HTTPException(
+                status_code=400,
+                detail="Audio data is required"
+            )
+        
+        # Decode base64 audio data
+        import base64
+        audio_bytes = base64.b64decode(audio_data)
+        
+        # Save to temporary file
+        file_path = tts_service.save_audio_to_file(audio_bytes, filename)
+        
+        return {
+            "success": True,
+            "file_path": file_path,
+            "filename": filename
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save audio: {str(e)}"
+        )
+
+
 @app.get("/tts/download/{filename}")
 async def download_audio(filename: str):
     """Download generated audio file."""
     try:
-        file_path = f"audio_output/{filename}"
+        file_path = f"temp_audio/{filename}"
         if not os.path.exists(file_path):
             raise HTTPException(
                 status_code=404,

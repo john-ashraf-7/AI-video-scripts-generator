@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { 
   generateAudio, 
   getTTSVoices, 
-  downloadAudio,
+  saveAudioToFile,
   type TTSVoice,
   type AudioGenerationResponse 
 } from "../../api";
@@ -23,6 +23,41 @@ export default function GenerateAudio({ script, onAudioGenerated }: GenerateAudi
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+
+  // Load saved audio data from localStorage on component mount
+  useEffect(() => {
+    const savedAudioData = localStorage.getItem('generatedAudioData');
+    if (savedAudioData) {
+      try {
+        const parsed = JSON.parse(savedAudioData);
+        if (parsed.script === script && parsed.audioInfo) {
+          setAudioInfo(parsed.audioInfo);
+          
+          // Recreate audio URL from saved base64 data
+          if (parsed.audioInfo.audio_data) {
+            const audioBlob = new Blob([
+              Uint8Array.from(atob(parsed.audioInfo.audio_data), c => c.charCodeAt(0))
+            ], { type: parsed.audioInfo.mime_type || 'audio/wav' });
+            
+            const url = URL.createObjectURL(audioBlob);
+            setAudioUrl(url);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved audio data:', error);
+        localStorage.removeItem('generatedAudioData');
+      }
+    }
+  }, [script]);
+
+  // Cleanup audio URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   // Load available voices when component mounts
   useEffect(() => {
@@ -68,15 +103,24 @@ export default function GenerateAudio({ script, onAudioGenerated }: GenerateAudi
         voice_id: selectedVoice
       });
 
-      if (audioData.success && audioData.filename) {
+      if (audioData.success && audioData.audio_data) {
         setAudioInfo(audioData);
         
-        // Download and create audio URL for playback
-        const audioBlob = await downloadAudio(audioData.filename);
+        // Create audio URL from base64 data for immediate playback
+        const audioBlob = new Blob([
+          Uint8Array.from(atob(audioData.audio_data), c => c.charCodeAt(0))
+        ], { type: audioData.mime_type || 'audio/wav' });
+        
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
         
         setMessage("Audio generated successfully!");
+        
+        // Save audio data to localStorage for persistence across refreshes
+        localStorage.setItem('generatedAudioData', JSON.stringify({
+          script: script,
+          audioInfo: audioData
+        }));
         
         // Call callback if provided
         if (onAudioGenerated) {
@@ -93,22 +137,34 @@ export default function GenerateAudio({ script, onAudioGenerated }: GenerateAudi
   };
 
   const handleDownload = async () => {
-    if (!audioInfo?.filename) return;
+    if (!audioInfo?.audio_data) return;
 
     try {
-      const audioBlob = await downloadAudio(audioInfo.filename);
-      const url = URL.createObjectURL(audioBlob);
+      // Save audio to temporary file first
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `script_audio_${timestamp}.wav`;
       
-      // Create download link
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = audioInfo.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const saveResult = await saveAudioToFile(audioInfo.audio_data, filename);
       
-      // Clean up URL
-      URL.revokeObjectURL(url);
+      if (saveResult.success) {
+        // Create download link from the saved file
+        const response = await fetch(`/api/tts/download/${saveResult.filename}`);
+        const audioBlob = await response.blob();
+        const url = URL.createObjectURL(audioBlob);
+        
+        // Create download link
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Clean up URL
+        URL.revokeObjectURL(url);
+      } else {
+        setMessage("Failed to save audio file for download");
+      }
     } catch (error) {
       setMessage(`Download failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

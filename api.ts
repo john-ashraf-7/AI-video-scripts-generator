@@ -141,12 +141,13 @@ interface AudioGenerationRequest {
  */
 interface AudioGenerationResponse {
   success: boolean;
-  audio_path?: string;
-  filename?: string;
+  audio_data?: string;  // Base64 encoded audio data
+  audio_bytes?: number; // Size in bytes
   duration_seconds?: number;
   voice_used?: string;
   voice_name?: string;
   file_size_mb?: number;
+  mime_type?: string;
   error?: string;
 }
 
@@ -427,6 +428,52 @@ export const generateAudio = async (
       throw new Error('No response from server. Please check if the backend is running.');
     }
     throw error instanceof Error ? error : new Error(`Audio generation failed: ${String(error)}`);
+  }
+};
+
+/**
+ * Save Audio to Temporary File API
+ * 
+ * Saves audio data to a temporary file for download.
+ * 
+ * @param audioData - Base64 encoded audio data
+ * @param filename - The name for the audio file
+ * @returns Promise<{success: boolean, file_path: string, filename: string}> - File save result
+ * @throws Error if the save fails
+ */
+export const saveAudioToFile = async (
+  audioData: string, 
+  filename: string
+): Promise<{success: boolean, file_path: string, filename: string}> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tts/save-audio`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        audio_data: audioData,
+        filename: filename
+      }),
+    });
+    
+    if (!response.ok) {
+      let errorMessage = 'Failed to save audio file';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`Audio save failed: ${String(error)}`);
   }
 };
 

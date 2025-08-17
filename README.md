@@ -103,8 +103,9 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Multiple Voice Options**: Choose from male/female voices with different styles (natural, professional, casual)
 - **Instagram Optimization**: Audio automatically optimized for Instagram video format
 - **Low Resource Usage**: Designed to work efficiently on university PCs
-- **Easy Integration**: Simple API endpoints for seamless audio generation
-- **Download Support**: Direct download of generated audio files
+- **Temporary Storage**: Audio files are generated temporarily and cleaned up automatically
+- **Streaming Playback**: Listen to audio directly in the browser without downloading
+- **Download Support**: Download audio files only when needed
 
 ### 📊 **Rich Metadata Processing**
 - Scripts incorporate comprehensive academic metadata:
@@ -186,7 +187,7 @@ AI-video-scripts-generator/
 ├── tsconfig.json                  # TypeScript configuration
 ├── next.config.ts                 # Next.js configuration
 ├── .env                           # Environment variables (create this)
-├── audio_output/                  # Generated audio files
+├── temp_audio/                    # Temporary audio files (download only)
 ├── tts_models/                    # Downloaded TTS voice models
 ├── app/                           # Next.js App Router
 │   ├── components/                # React components

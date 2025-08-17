@@ -3,6 +3,8 @@ import json
 import tempfile
 import subprocess
 import requests
+import base64
+import io
 from pathlib import Path
 from typing import Optional, Dict, List
 import logging
@@ -189,19 +191,17 @@ class TTSService:
             logger.warning(f"Audio optimization failed: {str(e)}. Using original audio.")
             return audio
     
-    def generate_audio(self, text: str, output_path: str = None, 
-                      speed: float = 1.0, volume: float = 1.0) -> str:
+    def generate_audio(self, text: str, speed: float = 1.0, volume: float = 1.0) -> bytes:
         """
-        Generate audio from text using Piper TTS.
+        Generate audio from text and return as bytes.
         
         Args:
             text: Text to convert to speech
-            output_path: Path to save the audio file (optional)
             speed: Speech rate multiplier (0.5 to 2.0)
             volume: Volume multiplier (0.1 to 2.0)
             
         Returns:
-            Path to the generated audio file
+            Audio data as bytes
         """
         if not text.strip():
             raise ValueError("Text cannot be empty")
@@ -212,18 +212,6 @@ class TTSService:
         # Ensure model is downloaded
         if not self.download_model(self.current_model):
             raise RuntimeError(f"Failed to download voice model: {self.current_model}")
-        
-        # Create temporary file for text
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            f.write(cleaned_text)
-            temp_text_file = f.name
-        
-        # Generate output path if not provided
-        if output_path is None:
-            output_path = f"audio_output/script_{hash(cleaned_text) % 10000}.wav"
-        
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         try:
             # Import piper
@@ -240,10 +228,6 @@ class TTSService:
             
             # Generate audio - handle both generator and bytes output
             audio_data = voice.synthesize(cleaned_text)
-            
-            # Save raw audio with proper WAV header
-            import wave
-            import numpy as np
             
             # Collect all audio data first
             all_audio_data = []
@@ -266,69 +250,65 @@ class TTSService:
                 # If it's bytes, use directly
                 combined_audio = audio_data
             
+            # Create WAV file in memory
+            import wave
+            
+            # Create a BytesIO buffer to hold the WAV data
+            wav_buffer = io.BytesIO()
+            
             # Write WAV file with proper header
-            with wave.open(output_path, 'wb') as wav_file:
+            with wave.open(wav_buffer, 'wb') as wav_file:
                 wav_file.setnchannels(1)  # Mono
                 wav_file.setsampwidth(2)  # 16-bit
                 wav_file.setframerate(sample_rate)
                 wav_file.writeframes(combined_audio)
             
-            # Audio file created successfully
-            if os.path.exists(output_path):
-                logger.info(f"Audio generated successfully: {output_path}")
-                return output_path
-            else:
-                raise RuntimeError("Audio file was not created")
+            # Get the bytes from the buffer
+            wav_bytes = wav_buffer.getvalue()
+            wav_buffer.close()
+            
+            logger.info(f"Audio generated successfully in memory")
+            return wav_bytes
                 
         except Exception as e:
             raise RuntimeError(f"Audio generation failed: {str(e)}")
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_text_file):
-                os.unlink(temp_text_file)
     
-    def generate_script_audio(self, script: str, voice_id: str = None, 
-                            output_filename: str = None) -> Dict:
+    def generate_script_audio(self, script: str, voice_id: str = None) -> Dict:
         """
         Generate audio for a complete script with Instagram optimization.
         
         Args:
             script: The script text to convert to audio
             voice_id: Voice model to use (optional)
-            output_filename: Custom output filename (optional)
             
         Returns:
-            Dictionary with audio file information
+            Dictionary with audio data and information
         """
         try:
             # Set voice if specified
             if voice_id:
                 self.set_voice(voice_id)
             
-            # Generate filename if not provided
-            if output_filename is None:
-                timestamp = int(time.time())
-                output_filename = f"script_audio_{timestamp}.wav"
-            
-            output_path = f"audio_output/{output_filename}"
-            
             # Generate audio with Instagram-optimized settings
-            audio_path = self.generate_audio(
+            audio_bytes = self.generate_audio(
                 text=script,
-                output_path=output_path,
                 speed=1.0,  # Normal speed for Instagram
                 volume=1.0  # Normal volume
             )
             
-            # Get audio file info with proper duration calculation
-            import wave
+            # Convert to base64 for frontend transmission
+            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
             
-            file_size = os.path.getsize(audio_path)
+            # Calculate duration from audio data
+            import wave
+            import io
+            
+            wav_buffer = io.BytesIO(audio_bytes)
             duration_seconds = 0.0
             
             try:
-                # Calculate duration from WAV file
-                with wave.open(audio_path, 'rb') as wav_file:
+                # Calculate duration from WAV data
+                with wave.open(wav_buffer, 'rb') as wav_file:
                     frames = wav_file.getnframes()
                     sample_rate = wav_file.getframerate()
                     duration_seconds = frames / sample_rate
@@ -336,15 +316,20 @@ class TTSService:
                 logger.warning(f"Could not calculate duration: {str(e)}")
                 # Fallback: estimate duration based on script length
                 duration_seconds = len(script.split()) / 2.5  # Rough estimate: 2.5 words per second
+            finally:
+                wav_buffer.close()
+            
+            file_size = len(audio_bytes)
             
             return {
                 "success": True,
-                "audio_path": audio_path,
-                "filename": output_filename,
+                "audio_data": audio_base64,
+                "audio_bytes": len(audio_bytes),
                 "duration_seconds": round(duration_seconds, 2),
                 "voice_used": self.current_model,
                 "voice_name": self.voice_models[self.current_model]["name"],
-                "file_size_mb": round(file_size / (1024 * 1024), 2)
+                "file_size_mb": round(file_size / (1024 * 1024), 2),
+                "mime_type": "audio/wav"
             }
             
         except Exception as e:
@@ -353,6 +338,55 @@ class TTSService:
                 "success": False,
                 "error": str(e)
             }
+    
+    def save_audio_to_file(self, audio_bytes: bytes, filename: str) -> str:
+        """
+        Save audio bytes to a temporary file for download.
+        
+        Args:
+            audio_bytes: Audio data as bytes
+            filename: Name for the file
+            
+        Returns:
+            Path to the saved file
+        """
+        # Create temporary directory if it doesn't exist
+        temp_dir = Path("temp_audio")
+        temp_dir.mkdir(exist_ok=True)
+        
+        # Clean up old files (older than 1 hour)
+        self._cleanup_old_temp_files()
+        
+        file_path = temp_dir / filename
+        
+        try:
+            with open(file_path, 'wb') as f:
+                f.write(audio_bytes)
+            
+            logger.info(f"Audio saved to temporary file: {file_path}")
+            return str(file_path)
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to save audio file: {str(e)}")
+    
+    def _cleanup_old_temp_files(self, max_age_hours: int = 1):
+        """Clean up temporary audio files older than specified hours."""
+        try:
+            temp_dir = Path("temp_audio")
+            if not temp_dir.exists():
+                return
+            
+            current_time = time.time()
+            max_age_seconds = max_age_hours * 3600
+            
+            for file_path in temp_dir.glob("*.wav"):
+                if file_path.is_file():
+                    file_age = current_time - file_path.stat().st_mtime
+                    if file_age > max_age_seconds:
+                        file_path.unlink()
+                        logger.info(f"Cleaned up old temporary file: {file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to cleanup temporary files: {str(e)}")
 
 # Global TTS service instance
 tts_service = TTSService()
