@@ -354,7 +354,7 @@ class TTSService:
         temp_dir = Path("temp_audio")
         temp_dir.mkdir(exist_ok=True)
         
-        # Clean up old files (older than 1 hour)
+        # Clean up old files (older than 10 minutes)
         self._cleanup_old_temp_files()
         
         file_path = temp_dir / filename
@@ -369,15 +369,15 @@ class TTSService:
         except Exception as e:
             raise RuntimeError(f"Failed to save audio file: {str(e)}")
     
-    def _cleanup_old_temp_files(self, max_age_hours: int = 1):
-        """Clean up temporary audio files older than specified hours."""
+    def _cleanup_old_temp_files(self, max_age_minutes: int = 10):
+        """Clean up temporary audio files older than specified minutes."""
         try:
             temp_dir = Path("temp_audio")
             if not temp_dir.exists():
                 return
             
             current_time = time.time()
-            max_age_seconds = max_age_hours * 3600
+            max_age_seconds = max_age_minutes * 60
             
             for file_path in temp_dir.glob("*.wav"):
                 if file_path.is_file():
