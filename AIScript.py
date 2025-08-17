@@ -296,13 +296,57 @@ class ScriptGenerator:
                 try:
                     item = json.loads(lines[index])
                     metadata = {
+                        # Basic identification
                         "identifier": item.get('Call number', item.get('identi', f'Row_{index}')),
                         "title": item.get('Title', item.get('Title (English)', 'No Title Available')),
+                        "title_arabic": item.get('Title (Arabic)', ''),
                         "creator": item.get('Creator', 'Unknown Author'),
+                        "creator_arabic": item.get('Creator (Arabic)', ''),
                         "date": str(item.get('Date', 'No Date Available')),
-                        "description": item.get('Description', item.get('Description (English)', 'No description provided.'))
+                        "description": item.get('Description', item.get('Description (English)', 'No description provided.')),
+                        
+                        # Publication details
+                        "publisher": item.get('Publisher', ''),
+                        "location": item.get('Location', ''),
+                        "location_governorate": item.get('Location-Governorate (English)', ''),
+                        "location_governorate_arabic": item.get('Location-Governorate (Arabic)', ''),
+                        "location_country": item.get('Location-Country (English)', ''),
+                        "location_country_arabic": item.get('Location-Country (Arabic)', ''),
+                        
+                        # Academic/scholarly context
+                        "subject": item.get('Subject', ''),
+                        "subject_lc": item.get('Subject LC', ''),
+                        "language": item.get('Language', ''),
+                        "genre": item.get('Genre (AAT)', ''),
+                        "type": item.get('Type', ''),
+                        "keywords_english": item.get('Keywords (English)', ''),
+                        "keywords_arabic": item.get('Keywords (Arabic)', ''),
+                        
+                        # Collection and institutional context
+                        "collection": item.get('Collection', ''),
+                        "source": item.get('Source', ''),
+                        "medium": item.get('Medium', ''),
+                        
+                        # Special fields for maps and other formats
+                        "scale": item.get('Scale', ''),
+                        "format": item.get('Format', ''),
+                        "coverage_spatial": item.get('Coverage-Spatial/Note', ''),
+                        
+                        # Rights and access
+                        "rights": item.get('Rights', ''),
+                        "access_rights": item.get('Access Rights', ''),
+                        "license": item.get('License', ''),
+                        "call_number": item.get('Call number', ''),
+                        "catalogue_link": item.get('Link to catalogue', ''),
+                        
+                        # Additional context
+                        "notes": item.get('Notes', ''),
+                        "image_url": item.get('Image URL', ''),
+                        
+                        # Preserve all original fields for comprehensive access
+                        "raw_data": item
                     }
-                    print(f"   - Successfully parsed metadata for: {metadata['title']}")
+                    print(f"   - Successfully parsed comprehensive metadata for: {metadata['title']}")
                     metadata_list.append(metadata)
                 except json.JSONDecodeError:
                     print(f"   - [ERROR] Could not decode JSON from row {index}. Skipping.")
@@ -315,8 +359,55 @@ class ScriptGenerator:
         """Returns a default metadata object when real data can't be fetched."""
         print(f"   - [WARNING] Could not fetch metadata: {reason}")
         return {
-            "identifier": "N/A", "title": "No Title", "creator": "Unknown",
-            "date": "Unknown", "description": "No description available."
+            # Basic identification
+            "identifier": "N/A", 
+            "title": "No Title", 
+            "title_arabic": "",
+            "creator": "Unknown",
+            "creator_arabic": "",
+            "date": "Unknown", 
+            "description": "No description available.",
+            
+            # Publication details
+            "publisher": "",
+            "location": "",
+            "location_governorate": "",
+            "location_governorate_arabic": "",
+            "location_country": "",
+            "location_country_arabic": "",
+            
+            # Academic/scholarly context
+            "subject": "",
+            "subject_lc": "",
+            "language": "",
+            "genre": "",
+            "type": "",
+            "keywords_english": "",
+            "keywords_arabic": "",
+            
+            # Collection and institutional context
+            "collection": "",
+            "source": "",
+            "medium": "",
+            
+            # Special fields
+            "scale": "",
+            "format": "",
+            "coverage_spatial": "",
+            
+            # Rights and access
+            "rights": "",
+            "access_rights": "",
+            "license": "",
+            "call_number": "",
+            "catalogue_link": "",
+            
+            # Additional context
+            "notes": "",
+            "image_url": "",
+            
+            # Raw data
+            "raw_data": {}
         }
 
     def _send_prompt_to_ollama(self, prompt, timeout=60):
@@ -407,56 +498,81 @@ class ScriptGenerator:
         summary_parts = []
         
         # Basic identification
-        title = metadata.get('Title', metadata.get('title', 'N/A'))
-        title_arabic = metadata.get('Title (Arabic)', '')
+        title = metadata.get('title', metadata.get('Title', 'N/A'))
+        title_arabic = metadata.get('title_arabic', metadata.get('Title (Arabic)', ''))
         summary_parts.append(f"Title: {title}")
         if title_arabic:
             summary_parts.append(f"Arabic Title: {title_arabic}")
         
         # Creator information
-        creator = metadata.get('Creator', metadata.get('creator', 'N/A'))
-        creator_arabic = metadata.get('Creator (Arabic)', '')
+        creator = metadata.get('creator', metadata.get('Creator', 'N/A'))
+        creator_arabic = metadata.get('creator_arabic', metadata.get('Creator (Arabic)', ''))
         summary_parts.append(f"Creator/Author: {creator}")
         if creator_arabic:
             summary_parts.append(f"Arabic Creator: {creator_arabic}")
         
         # Publication details
-        date = metadata.get('Date', metadata.get('date', 'N/A'))
-        publisher = metadata.get('Publisher', '')
-        location = metadata.get('Location', '')
+        date = metadata.get('date', metadata.get('Date', 'N/A'))
+        publisher = metadata.get('publisher', metadata.get('Publisher', ''))
+        location = metadata.get('location', metadata.get('Location', ''))
+        location_governorate = metadata.get('location_governorate', metadata.get('Location-Governorate (English)', ''))
+        location_country = metadata.get('location_country', metadata.get('Location-Country (English)', ''))
+        
         summary_parts.append(f"Date: {date}")
         if publisher:
             summary_parts.append(f"Publisher: {publisher}")
         if location:
             summary_parts.append(f"Location: {location}")
+        if location_governorate:
+            summary_parts.append(f"Governorate: {location_governorate}")
+        if location_country:
+            summary_parts.append(f"Country: {location_country}")
         
         # Content description
-        description = metadata.get('Description', metadata.get('description', 'No description provided.'))
+        description = metadata.get('description', metadata.get('Description', 'No description provided.'))
         summary_parts.append(f"Description: {description}")
         
         # Academic/scholarly context
-        subject = metadata.get('Subject', '')
-        language = metadata.get('Language', '')
-        genre = metadata.get('Genre (AAT)', '')
+        subject = metadata.get('subject', metadata.get('Subject', ''))
+        subject_lc = metadata.get('subject_lc', metadata.get('Subject LC', ''))
+        language = metadata.get('language', metadata.get('Language', ''))
+        genre = metadata.get('genre', metadata.get('Genre (AAT)', ''))
+        type_info = metadata.get('type', metadata.get('Type', ''))
+        keywords_english = metadata.get('keywords_english', metadata.get('Keywords (English)', ''))
+        keywords_arabic = metadata.get('keywords_arabic', metadata.get('Keywords (Arabic)', ''))
+        
         if subject:
             summary_parts.append(f"Subject: {subject}")
+        if subject_lc:
+            summary_parts.append(f"Subject Classification: {subject_lc}")
         if language:
             summary_parts.append(f"Language: {language}")
         if genre:
-            summary_parts.append(f"Type/Genre: {genre}")
+            summary_parts.append(f"Genre: {genre}")
+        if type_info:
+            summary_parts.append(f"Type: {type_info}")
+        if keywords_english:
+            summary_parts.append(f"Keywords (English): {keywords_english}")
+        if keywords_arabic:
+            summary_parts.append(f"Keywords (Arabic): {keywords_arabic}")
         
         # Collection and institutional context
-        collection = metadata.get('Collection', '')
-        source = metadata.get('Source', '')
+        collection = metadata.get('collection', metadata.get('Collection', ''))
+        source = metadata.get('source', metadata.get('Source', ''))
+        medium = metadata.get('medium', metadata.get('Medium', ''))
+        
         if collection:
             summary_parts.append(f"Collection: {collection}")
         if source:
             summary_parts.append(f"Source Institution: {source}")
+        if medium:
+            summary_parts.append(f"Medium: {medium}")
         
         # Special fields for maps and other formats
-        scale = metadata.get('Scale', '')
-        format_type = metadata.get('Format', '')
-        coverage = metadata.get('Coverage-Spatial/Note', '')
+        scale = metadata.get('scale', metadata.get('Scale', ''))
+        format_type = metadata.get('format', metadata.get('Format', ''))
+        coverage = metadata.get('coverage_spatial', metadata.get('Coverage-Spatial/Note', ''))
+        
         if scale:
             summary_parts.append(f"Scale: {scale}")
         if format_type:
@@ -465,20 +581,31 @@ class ScriptGenerator:
             summary_parts.append(f"Geographic Coverage: {coverage}")
         
         # Rights and access
-        rights = metadata.get('Rights', '')
-        license_info = metadata.get('License', '')
-        call_number = metadata.get('Call number', metadata.get('call_number', ''))
+        rights = metadata.get('rights', metadata.get('Rights', ''))
+        access_rights = metadata.get('access_rights', metadata.get('Access Rights', ''))
+        license_info = metadata.get('license', metadata.get('License', ''))
+        call_number = metadata.get('call_number', metadata.get('Call number', ''))
+        catalogue_link = metadata.get('catalogue_link', metadata.get('Link to catalogue', ''))
+        
         if rights:
             summary_parts.append(f"Rights: {rights}")
+        if access_rights:
+            summary_parts.append(f"Access Rights: {access_rights}")
         if license_info:
             summary_parts.append(f"License: {license_info}")
         if call_number:
             summary_parts.append(f"Call Number: {call_number}")
+        if catalogue_link:
+            summary_parts.append(f"Catalogue Link: {catalogue_link}")
         
-        # Additional notes
-        notes = metadata.get('Notes', '')
+        # Additional context
+        notes = metadata.get('notes', metadata.get('Notes', ''))
+        image_url = metadata.get('image_url', metadata.get('Image URL', ''))
+        
         if notes:
             summary_parts.append(f"Additional Notes: {notes}")
+        if image_url:
+            summary_parts.append(f"Image Available: {image_url}")
         
         summary = "\n".join(summary_parts)
         print(f"   - Enhanced factual summary created with {len(summary_parts)} metadata fields.")

@@ -84,6 +84,7 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Advanced Script Cleaning**: Removes AI-generated comments and annotations for cleaner output
 - **Smart Audio Management**: In-memory generation with refresh persistence and automatic cleanup
 - **Better Error Handling**: More robust error messages and validation for regeneration modes
+- **Comprehensive Metadata Utilization**: Now uses all 25+ available metadata fields for richer script generation
 
 ### 🖼️ **Interactive Gallery Interface**
 - Browse library collections with rich metadata display
@@ -146,6 +147,22 @@ The AI Video Script Generator follows a modern microservices architecture with t
   - Collection and institutional information
   - Rights, licensing, and catalog information
   - Call numbers and catalogue links
+
+### 🔍 **Comprehensive Metadata Utilization**
+- **All 25+ Metadata Fields**: Now utilizes every available field from the library database
+- **Enhanced Field Categories**:
+  - **Basic Identification**: Title (English/Arabic), Creator (English/Arabic), Date, Description
+  - **Publication Details**: Publisher, Location, Governorate, Country (English/Arabic)
+  - **Academic Context**: Subject, Subject LC, Language, Genre, Type, Keywords (English/Arabic)
+  - **Collection Context**: Collection, Source Institution, Medium
+  - **Special Fields**: Scale, Format, Geographic Coverage
+  - **Rights & Access**: Rights, Access Rights, License, Call Number, Catalogue Link
+  - **Additional Context**: Notes, Image URL
+- **Bilingual Enhancement**: Arabic titles, creators, and keywords for authentic translations
+- **Geographic Context**: Location-specific details for regional relevance
+- **Academic Classification**: Proper subject and genre information for scholarly accuracy
+- **Institutional Context**: Collection and source information for credibility
+- **Complete Metadata**: All available information utilized for comprehensive script generation
 
 ### 📁 **Batch Processing**
 - Select multiple items for simultaneous processing
