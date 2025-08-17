@@ -244,59 +244,83 @@ AI-video-scripts-generator/
 
 ## 🖥️ Quick Start
 
+### **Prerequisites for All Platforms:**
+- **Python 3.8+** - [Download here](https://www.python.org/downloads/)
+- **Node.js 16+** - [Download here](https://nodejs.org/)
+- **Git** - [Download here](https://git-scm.com/)
+- **MongoDB Atlas Account** - [Sign up here](https://www.mongodb.com/atlas)
+
 1. **Install Ollama and pull the model:**
-```bash
-ollama pull llama3:8b
-```
+
+   **macOS/Linux:**
+   ```bash
+   curl -fsSL https://ollama.ai/install.sh | sh
+   ollama pull llama3:8b
+   ```
+
+   **Windows:**
+   ```bash
+   # Download from https://ollama.ai/download
+   # Install the downloaded executable
+   ollama pull llama3:8b
+   ```
 
 2. **Set up environment variables:**
-```bash
-# Create .env file in project root
-cp .env.example .env
-# Edit .env with your MongoDB credentials and settings
-```
+   ```bash
+   # Create .env file in project root
+   # On macOS/Linux:
+   touch .env
+   # On Windows:
+   echo. > .env
+   
+   # Edit .env with your MongoDB credentials and settings
+   ```
 
 3. **Set up database (required):**
-```bash
-# Get library data from scraper branch (12MB JSON file)
-# Direct link: https://github.com/john-ashraf-7/AI-video-scripts-generator/tree/scraper
-git checkout scraper
-cp library_data.json ../library_data.json
-git checkout main
+   ```bash
+   # Get library data from scraper branch (12MB JSON file)
+   # Direct link: https://github.com/john-ashraf-7/AI-video-scripts-generator/tree/scraper
+   git checkout scraper
+   cp library_data.json ../library_data.json
+   git checkout main
 
-# Import data to your MongoDB database
-mongoimport --uri "mongodb+srv://your_username:your_password@your_cluster.mongodb.net/metadata" \
-  --collection "Digital Collection" \
-  --file library_data.json \
-  --jsonArray
-```
+   # Import data to your MongoDB database
+   mongoimport --uri "mongodb+srv://your_username:your_password@your_cluster.mongodb.net/metadata" \
+     --collection "Digital Collection" \
+     --file library_data.json \
+     --jsonArray
+   ```
 
 4. **Set up Python backend:**
-```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```bash
+   # Create and activate virtual environment
+   python -m venv venv
+   
+   # On macOS/Linux:
+   source venv/bin/activate
+   # On Windows:
+   venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+   # Install dependencies
+   pip install -r requirements.txt
 
-# Install Piper TTS (for audio generation)
-pip install piper-tts
+   # Install Piper TTS (for audio generation)
+   pip install piper-tts
 
-# Start backend server
-uvicorn main:app --port 8002
-```
+   # Start backend server
+   uvicorn main:app --port 8002
+   ```
 
 5. **Install frontend dependencies and start:**
-```bash
-npm install
-npm run dev
-```
+   ```bash
+   npm install
+   npm run dev
+   ```
 
 6. **Access the application:**
-```
-http://localhost:3000
-```
+   ```
+   http://localhost:3000
+   ```
 
 **🎤 TTS Feature**: After generating a script, click the "Generate Audio" button to convert it to speech using natural-sounding voices. Audio is generated in-memory for immediate playback and only saved to disk when you choose to download it.
 

@@ -22,9 +22,16 @@ cd AI-video-scripts-generator
 
 The project uses environment variables for configuration. Create a `.env` file in the project root:
 
+**macOS/Linux:**
 ```bash
 # Create .env file
 touch .env
+```
+
+**Windows:**
+```bash
+# Create .env file
+echo. > .env
 ```
 
 Add the following configuration to your `.env` file:
@@ -73,12 +80,20 @@ You need to populate your MongoDB database with library metadata. The project in
    ```
 
 2. **Import the data into your MongoDB database:**
+
+   **macOS/Linux:**
    ```bash
    # Using mongoimport (install MongoDB tools if needed)
    mongoimport --uri "mongodb+srv://your_username:your_password@your_cluster.mongodb.net/metadata" \
      --collection "Digital Collection" \
      --file library_data.json \
      --jsonArray
+   ```
+
+   **Windows:**
+   ```bash
+   # Using mongoimport (install MongoDB tools if needed)
+   mongoimport --uri "mongodb+srv://your_username:your_password@your_cluster.mongodb.net/metadata" --collection "Digital Collection" --file library_data.json --jsonArray
    ```
 
    **Alternative:** You can also use MongoDB Compass or the MongoDB Atlas web interface to import the JSON file.
@@ -168,6 +183,29 @@ Keep this terminal running. The server will be available at `http://localhost:11
 
    The frontend will be available at `http://localhost:3000`
 
+## 🔧 Platform-Specific Considerations
+
+### **Windows Users:**
+- **Path Separators**: Use backslashes (`\`) in file paths and forward slashes (`/`) in URLs
+- **Command Prompt**: Use `cmd` or PowerShell for running commands
+- **Virtual Environment**: Use `venv\Scripts\activate` to activate Python virtual environment
+- **File Creation**: Use `echo. > filename` to create empty files
+- **Directory Removal**: Use `rmdir /s directory` to remove directories recursively
+
+### **macOS/Linux Users:**
+- **Path Separators**: Use forward slashes (`/`) in all paths
+- **Terminal**: Use bash, zsh, or other Unix shells
+- **Virtual Environment**: Use `source venv/bin/activate` to activate Python virtual environment
+- **File Creation**: Use `touch filename` to create empty files
+- **Directory Removal**: Use `rm -rf directory` to remove directories recursively
+
+### **Cross-Platform Compatibility:**
+- **Node.js**: Works identically on all platforms
+- **Python**: Virtual environments work the same way, just different activation commands
+- **MongoDB**: Atlas cloud database works the same on all platforms
+- **Ollama**: Installation differs, but usage is identical once installed
+- **Ports**: All services use the same ports (3000, 8002, 11434) on all platforms
+
 ## 🎯 Step 9: Test the Application
 
 1. **Open your browser** and go to `http://localhost:3000`
@@ -224,8 +262,20 @@ Keep this terminal running. The server will be available at `http://localhost:11
    - Verify virtual environment is created: `ls venv/` or `dir venv\`
 
 6. **"Next.js build errors"**
-   - Clear Next.js cache: `rm -rf .next`
-   - Reinstall dependencies: `rm -rf node_modules && npm install`
+   - Clear Next.js cache:
+     ```bash
+     # macOS/Linux:
+     rm -rf .next
+     # Windows:
+     rmdir /s .next
+     ```
+   - Reinstall dependencies:
+     ```bash
+     # macOS/Linux:
+     rm -rf node_modules && npm install
+     # Windows:
+     rmdir /s node_modules && npm install
+     ```
    - Check TypeScript configuration in `tsconfig.json`
 
 7. **"Environment variables not found"**
@@ -344,5 +394,6 @@ For additional help:
 - Review the troubleshooting section above
 - Ensure all prerequisites are met
 - Verify your `.env` file configuration
+- For Text-to-Speech (TTS) features, see [TTS_README.md](./TTS_README.md)
 
 Happy script generating! 🎬 
