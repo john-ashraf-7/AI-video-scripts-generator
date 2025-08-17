@@ -77,6 +77,9 @@ class RegenerateScriptRequest(BaseModel):
     artifact_type: str
     user_comments: str
     original_script: str
+    original_arabic_script: str = None
+    regenerate_english: bool = True
+    regenerate_arabic: bool = True
 
 
 class AudioGenerationRequest(BaseModel):
@@ -116,46 +119,94 @@ async def health_check():
 async def regenerate_script_with_comments(request: RegenerateScriptRequest):
     """Regenerate a script incorporating user comments."""
     try:
-        # Create an enhanced prompt that includes the user comments
-        enhanced_prompt = f"""
-        Please regenerate the script for the following item, incorporating the user's comments.
-
-        Original Metadata:
-        {json.dumps(request.original_metadata, indent=2)}
-
-        Original Script:
-        {request.original_script}
-
-        User Comments:
-        {request.user_comments}
-
-        Please create an improved version that addresses the user's comments while maintaining the original structure and purpose.
-        """
-
-        # Generate the new script using the enhanced prompt
-        raw_script = script_generator._send_prompt_to_ollama(enhanced_prompt)
-        script = script_generator._clean_raw_script(raw_script)
-        
-        qc_passed, qc_message = script_generator._quality_check(script)
-
         result = {
-            "english_script": script,
-            "qc_passed": qc_passed,
-            "qc_message": qc_message,
+            "english_script": None,
             "arabic_translation_refined": None,
             "regenerated": True,
             "comments_incorporated": True
         }
 
-        if qc_passed:
-            try:
-                arabic_translation = script_generator.translate_to_arabic(script)
-                refined_arabic = script_generator.refine_translation_with_ollama(
-                    arabic_translation
+        # Mode 1: Arabic only - Direct improvement of existing Arabic
+        if request.regenerate_arabic and not request.regenerate_english:
+            if not request.original_arabic_script:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Cannot regenerate Arabic only: No original Arabic script provided"
                 )
-                result["arabic_translation_refined"] = refined_arabic
-            except Exception as e:
-                result["arabic_translation_refined"] = f"Translation failed: {str(e)}"
+            
+            arabic_prompt = f"""
+            Please improve the following Arabic script based on the user's comments.
+
+            Current Arabic Script:
+            {request.original_arabic_script}
+
+            User Comments:
+            {request.user_comments}
+
+            Please create an improved Arabic version that addresses the user's comments while maintaining the original meaning and structure.
+            """
+            
+            refined_arabic = script_generator._send_prompt_to_ollama(arabic_prompt)
+            result["arabic_translation_refined"] = script_generator._clean_raw_script(refined_arabic)
+            result["english_script"] = request.original_script  # Keep original English
+
+        # Mode 2: English only - Direct improvement of existing English
+        elif request.regenerate_english and not request.regenerate_arabic:
+            english_prompt = f"""
+            Please improve the following English script based on the user's comments.
+
+            Current English Script:
+            {request.original_script}
+
+            User Comments:
+            {request.user_comments}
+
+            Please create an improved English version that addresses the user's comments while maintaining the original structure and purpose.
+            """
+            
+            raw_script = script_generator._send_prompt_to_ollama(english_prompt)
+            result["english_script"] = script_generator._clean_raw_script(raw_script)
+            result["arabic_translation_refined"] = request.original_arabic_script  # Keep original Arabic
+
+        # Mode 3: Both - Full pipeline with comments
+        elif request.regenerate_english and request.regenerate_arabic:
+            # Full pipeline with enhanced prompt
+            enhanced_prompt = f"""
+            Please regenerate the script for the following item, incorporating the user's comments.
+
+            Original Metadata:
+            {json.dumps(request.original_metadata, indent=2)}
+
+            Original Script:
+            {request.original_script}
+
+            User Comments:
+            {request.user_comments}
+
+            Please create an improved version that addresses the user's comments while maintaining the original structure and purpose.
+            """
+
+            raw_script = script_generator._send_prompt_to_ollama(enhanced_prompt)
+            script = script_generator._clean_raw_script(raw_script)
+            
+            qc_passed, qc_message = script_generator._quality_check(script)
+            result["english_script"] = script
+            result["qc_passed"] = qc_passed
+            result["qc_message"] = qc_message
+
+            if qc_passed:
+                try:
+                    arabic_translation = script_generator.translate_to_arabic(script)
+                    refined_arabic = script_generator.refine_translation_with_ollama(arabic_translation)
+                    result["arabic_translation_refined"] = refined_arabic
+                except Exception as e:
+                    result["arabic_translation_refined"] = f"Translation failed: {str(e)}"
+
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Please select at least one option to regenerate"
+            )
 
         return result
 

@@ -106,6 +106,9 @@ interface RegenerateScriptRequest {
   artifact_type: string;
   user_comments: string;
   original_script: string;
+  original_arabic_script?: string;
+  regenerate_english?: boolean;
+  regenerate_arabic?: boolean;
 }
 
 /**

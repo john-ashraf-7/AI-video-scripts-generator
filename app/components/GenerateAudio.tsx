@@ -260,7 +260,7 @@ export default function GenerateAudio({ script, onAudioGenerated }: GenerateAudi
                 
                 {/* Audio Player */}
                 <audio controls className="w-full">
-                  <source src={audioUrl} type={audioInfo.filename?.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav'} />
+                  <source src={audioUrl} type={audioInfo.mime_type || 'audio/wav'} />
                   Your browser does not support the audio element.
                 </audio>
                 

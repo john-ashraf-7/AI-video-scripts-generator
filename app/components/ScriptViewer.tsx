@@ -159,6 +159,7 @@ export default function ScriptViewer({ result, metadata, artifactType, onRegener
           <RegenerateScript
             originalMetadata={metadata}
             originalScript={currentResult.english_script}
+            originalArabicScript={currentResult.arabic_translation_refined}
             artifactType={artifactType}
             onRegenerate={handleRegenerate}
           />

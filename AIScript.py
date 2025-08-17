@@ -71,6 +71,9 @@ class ScriptGenerator:
                 "\n\n**CRITICAL RULES:**"
                 "\n1. **NO EXTRA TEXT:** Your response MUST start DIRECTLY with the first visual cue. Do NOT include titles, headings, preambles, or markdown (`**`, `#`)."
                 "\n2. **USE PROVIDED INFO ONLY:** Base the entire script on the 'Source Information' provided. Do not invent facts or use outside knowledge."
+                "\n3. **EXACTLY 3 PARAGRAPHS:** You must produce exactly 3 paragraphs separated by double newlines."
+                "\n4. **VISUAL CUES:** Each paragraph must start with a visual cue in parentheses."
+                "\n5. **STRUCTURE:** Paragraph 1 = Introduction, Paragraph 2 = Body/Details, Paragraph 3 = Conclusion."
                 "\n\n--- Source Information ---\n"
                 "{factual_summary}"
                 "\n--- End of Information ---"
@@ -98,7 +101,7 @@ class ScriptGenerator:
 
     def _clean_raw_script(self, raw_script: str) -> str:
         """
-        Cleans the raw LLM output by removing preambles and markdown.
+        Cleans the raw LLM output by removing preambles, markdown, and extra comments.
         """
         # Find the first visual cue, which can be in parentheses or brackets.
         pos1 = raw_script.find('(')
@@ -123,7 +126,98 @@ class ScriptGenerator:
         script = re.sub(r'\[.*?paragraph.*?\]', '', script, flags=re.IGNORECASE)
         script = re.sub(r'\(Your visual cue here\)', '(Visual cue)', script, flags=re.IGNORECASE)
         
+        # Remove common AI-generated comments and annotations
+        script = re.sub(r'^.*?(?:Here is|Here\'s|This is|I have|Generated|Script:|Translation:).*?\n', '', script, flags=re.IGNORECASE | re.MULTILINE)
+        script = re.sub(r'^.*?(?:improved|refined|corrected|enhanced).*?\n', '', script, flags=re.IGNORECASE | re.MULTILINE)
+        script = re.sub(r'^.*?(?:Note:|Comment:|Feedback:|Suggestion:).*?\n', '', script, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Remove any lines that are just commentary (not actual script content)
+        lines = script.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith(('Note:', 'Comment:', 'Feedback:', 'Suggestion:', 'Here is', 'Here\'s', 'This is')):
+                # Check if line contains actual script content (visual cues or meaningful text)
+                if line.startswith('(') or line.startswith('[') or len(line) > 10:
+                    cleaned_lines.append(line)
+        
+        # Preserve paragraph structure by ensuring proper spacing
+        script = '\n\n'.join(cleaned_lines)
+        
+        # Ensure we have proper paragraph separation for the 3-paragraph structure
+        # Look for visual cues and ensure they start new paragraphs
+        script = re.sub(r'\n([(][^)]+[)])\n', r'\n\n\1\n', script)
+        
+        # Validate and fix the 3-paragraph structure
+        script = self._ensure_three_paragraph_structure(script)
+        
         return script.strip()
+
+    def _ensure_three_paragraph_structure(self, script: str) -> str:
+        """
+        Ensures the script has exactly 3 paragraphs with visual cues.
+        """
+        # Split by double newlines to get paragraphs
+        paragraphs = [p.strip() for p in script.split('\n\n') if p.strip()]
+        
+        # Count visual cues
+        visual_cues = re.findall(r'\([^)]+\)', script)
+        
+        print(f"   - Found {len(paragraphs)} paragraphs and {len(visual_cues)} visual cues")
+        
+        # If we have exactly 3 visual cues but wrong paragraph count, fix it
+        if len(visual_cues) == 3 and len(paragraphs) != 3:
+            print(f"   - Fixing paragraph structure: {len(paragraphs)} paragraphs -> 3 paragraphs")
+            # Split by visual cues to create proper paragraphs
+            parts = re.split(r'\([^)]+\)', script)
+            cues = re.findall(r'\([^)]+\)', script)
+            
+            fixed_paragraphs = []
+            for i, cue in enumerate(cues):
+                if i < len(parts) - 1:
+                    # Get the text after this cue (before the next cue)
+                    text_after_cue = parts[i + 1].strip()
+                    # Remove any leading/trailing whitespace and newlines
+                    text_after_cue = re.sub(r'^\s*\n+', '', text_after_cue)
+                    text_after_cue = re.sub(r'\n+\s*$', '', text_after_cue)
+                    
+                    paragraph = cue + '\n' + text_after_cue
+                    fixed_paragraphs.append(paragraph)
+            
+            if len(fixed_paragraphs) == 3:
+                script = '\n\n'.join(fixed_paragraphs)
+                print(f"   - Successfully fixed to 3 paragraphs")
+        
+        # If we still don't have 3 paragraphs, try to force the structure
+        if len(paragraphs) != 3:
+            print(f"   - Warning: Script does not have exactly 3 paragraphs. Attempting to fix...")
+            # Try to identify the three main sections and force the structure
+            if len(visual_cues) >= 3:
+                # Use the first 3 visual cues to create the structure
+                script = self._force_three_paragraph_structure(script, visual_cues[:3])
+        
+        return script
+
+    def _force_three_paragraph_structure(self, script: str, cues: list) -> str:
+        """
+        Forces the script into a 3-paragraph structure using the provided visual cues.
+        """
+        # Split the script by the visual cues
+        parts = re.split(r'\([^)]+\)', script)
+        
+        # Create the three paragraphs
+        paragraphs = []
+        for i, cue in enumerate(cues):
+            if i < len(parts) - 1:
+                text_content = parts[i + 1].strip()
+                # Clean up the text content
+                text_content = re.sub(r'^\s*\n+', '', text_content)
+                text_content = re.sub(r'\n+\s*$', '', text_content)
+                
+                paragraph = cue + '\n' + text_content
+                paragraphs.append(paragraph)
+        
+        return '\n\n'.join(paragraphs)
 
 
     def _check_ollama_status(self):
@@ -435,7 +529,12 @@ class ScriptGenerator:
             "4. DO NOT add introductions, conclusions, or commentary\n"
             "5. ONLY fix grammar mistakes and awkward Arabic phrasing\n"
             "6. Keep the exact same meaning and length\n"
-            "7. Your response must start DIRECTLY with the corrected Arabic text\n\n"
+            "7. Your response must start DIRECTLY with the corrected Arabic text\n"
+            "8. DO NOT add any notes, comments, or explanations\n"
+            "9. DO NOT say 'Here is the improved version' or similar phrases\n"
+            "10. Start immediately with the first visual cue or Arabic text\n"
+            "11. PRESERVE ALL CONTENT - do not truncate or cut off any part of the text\n"
+            "12. Ensure the complete script is returned with all paragraphs intact\n\n"
             f"Text to refine:\n{arabic_text}"
         )
         
@@ -450,11 +549,33 @@ class ScriptGenerator:
         # Find the first line that contains Arabic text or visual cue
         start_index = 0
         for i, line in enumerate(lines):
-            if line.strip() and (line.strip().startswith('(') or any(ord(char) > 127 for char in line)):
+            line_stripped = line.strip()
+            # Skip lines that are just commentary or explanations
+            if (line_stripped.startswith('(') or 
+                any(ord(char) > 127 for char in line_stripped) or
+                (len(line_stripped) > 10 and not line_stripped.lower().startswith(('here is', 'here\'s', 'this is', 'note:', 'comment:', 'improved', 'refined')))):
                 start_index = i
                 break
         
         final_text = '\n'.join(lines[start_index:]).strip()
+        
+        # More conservative cleaning - only remove obvious commentary lines
+        final_lines = final_text.split('\n')
+        cleaned_lines = []
+        for line in final_lines:
+            line_stripped = line.strip()
+            # Only remove lines that are clearly commentary, not actual content
+            if (line_stripped and 
+                not line_stripped.lower().startswith(('note:', 'comment:', 'feedback:', 'suggestion:')) and
+                not line_stripped.lower().startswith(('here is the', 'here\'s the', 'this is the')) and
+                not (len(line_stripped) < 5 and line_stripped.lower() in ['improved', 'refined', 'corrected'])):
+                cleaned_lines.append(line)
+        
+        final_text = '\n\n'.join(cleaned_lines).strip()
+        
+        # Ensure proper paragraph separation for the 3-paragraph structure
+        # Look for visual cues and ensure they start new paragraphs
+        final_text = re.sub(r'\n([(][^)]+[)])\n', r'\n\n\1\n', final_text)
         
         print("   - Refinement with Ollama successful.")
         return final_text
@@ -469,9 +590,28 @@ class ScriptGenerator:
                 self.translation_model = MarianMTModel.from_pretrained(self.translation_model_name)
                 print("   - Translation model loaded.")
 
+            # Split by double newlines to preserve paragraph structure
             paragraphs = script_text.strip().split('\n\n')
             translated_paragraphs = []
             print(f"   - Translating {len(paragraphs)} paragraph(s)...")
+            
+            # Ensure we have exactly 3 paragraphs for the standard format
+            if len(paragraphs) < 3:
+                print(f"   - Warning: Found {len(paragraphs)} paragraphs, expected 3. Attempting to fix structure...")
+                # Try to split by visual cues if paragraphs are not properly separated
+                if len(paragraphs) == 1:
+                    # Split the single paragraph by visual cues
+                    content = paragraphs[0]
+                    visual_cue_pattern = r'\([^)]+\)'
+                    cues = re.findall(visual_cue_pattern, content)
+                    if len(cues) >= 3:
+                        # Split by visual cues to create proper paragraphs
+                        parts = re.split(visual_cue_pattern, content)
+                        paragraphs = []
+                        for i, cue in enumerate(cues):
+                            if i < len(parts) - 1:
+                                paragraph = cue + parts[i + 1].strip()
+                                paragraphs.append(paragraph)
             
             for i, p in enumerate(paragraphs):
                 if not p.strip():
@@ -491,9 +631,22 @@ class ScriptGenerator:
                 
                 # Translate only the text content, not the visual cue
                 if text_to_translate:
-                    inputs = self.translation_tokenizer(text_to_translate, return_tensors="pt", padding=True, truncation=True, max_length=512)
-                    translated_ids = self.translation_model.generate(**inputs)
-                    translated_text = self.translation_tokenizer.batch_decode(translated_ids, skip_special_tokens=True)[0]
+                    # Split long text into smaller chunks if needed
+                    if len(text_to_translate) > 400:
+                        # Split by sentences for very long paragraphs
+                        sentences = text_to_translate.split('. ')
+                        translated_sentences = []
+                        for sentence in sentences:
+                            if sentence.strip():
+                                inputs = self.translation_tokenizer(sentence, return_tensors="pt", padding=True, truncation=True, max_length=256)
+                                translated_ids = self.translation_model.generate(**inputs)
+                                translated_sentence = self.translation_tokenizer.batch_decode(translated_ids, skip_special_tokens=True)[0]
+                                translated_sentences.append(translated_sentence)
+                        translated_text = '. '.join(translated_sentences)
+                    else:
+                        inputs = self.translation_tokenizer(text_to_translate, return_tensors="pt", padding=True, truncation=True, max_length=512)
+                        translated_ids = self.translation_model.generate(**inputs)
+                        translated_text = self.translation_tokenizer.batch_decode(translated_ids, skip_special_tokens=True)[0]
                     
                     # Combine visual cue with translated text
                     if visual_cue:

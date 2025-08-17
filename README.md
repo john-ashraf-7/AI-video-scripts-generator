@@ -77,6 +77,14 @@ The AI Video Script Generator follows a modern microservices architecture with t
 
 ## 🎯 Features
 
+### 🆕 **Recent Improvements (Latest Update)**
+- **Selective Script Regeneration**: Choose to regenerate English, Arabic, or both with targeted comments
+- **Enhanced 3-Paragraph Format**: Strict enforcement of intro/body/conclusion structure with visual cues
+- **Improved Arabic Translation**: Better paragraph structure preservation and grammar enhancement
+- **Advanced Script Cleaning**: Removes AI-generated comments and annotations for cleaner output
+- **Smart Audio Management**: In-memory generation with refresh persistence and automatic cleanup
+- **Better Error Handling**: More robust error messages and validation for regeneration modes
+
 ### 🖼️ **Interactive Gallery Interface**
 - Browse library collections with rich metadata display
 - Responsive grid layout with detailed item cards
@@ -95,17 +103,26 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Persistent Search State**: Search filters, sort preferences, and page numbers are preserved across navigation
 - **URL State Management**: Search state is maintained in URL parameters for bookmarking and sharing
 
-### 🎬 **Script Regeneration & Enhancement**
-- **Comment-Based Regeneration**: Regenerate scripts with specific user comments and feedback
-- **Direct Enhancement**: No formal feedback storage - immediate script improvement based on comments
+### 🎬 **Advanced Script Regeneration & Enhancement**
+- **Selective Regeneration**: Choose to regenerate English script, Arabic translation, or both
+- **Comment-Based Enhancement**: Regenerate scripts with specific user comments and feedback
+- **Three Regeneration Modes**:
+  - **English Only**: Direct improvement of existing English script with comments
+  - **Arabic Only**: Direct improvement of existing Arabic translation with comments  
+  - **Both**: Full pipeline regeneration with metadata and comments
+- **Smart Processing**: Preserves unchanged scripts when regenerating only one language
 - **Enhanced Prompts**: AI incorporates user comments to improve script quality, add details, or modify style
-- **Example Comments**: "Add more details about the author", "Make it more engaging", "Include specific book themes"
+- **Example Comments**: "Add more details about the author", "Make it more engaging", "Improve the Arabic translation"
 - **Seamless Integration**: Regeneration button appears directly in script viewer for easy access
 - **Quality Improvement**: Iteratively enhance scripts until satisfaction
 
 ### 🌍 **Enhanced Bilingual Support**
 - Utilizes Arabic titles and creator names for authentic translations
-- Automatic Arabic translation with format preservation
+- **Strict 3-Paragraph Format**: Ensures consistent intro/body/conclusion structure
+- **Visual Cue Preservation**: Maintains visual cues in both English and Arabic
+- **Paragraph Structure Validation**: Automatic detection and fixing of paragraph structure
+- **Enhanced Translation Quality**: Improved Arabic translation with better grammar and natural flow
+- **Format Preservation**: Maintains proper paragraph separation and visual cue positioning
 - Quality control validation for translation accuracy
 - Bilingual script output (English/Arabic)
 
@@ -117,6 +134,9 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Temporary Storage**: Audio files are generated temporarily and cleaned up automatically every 10 minutes
 - **Streaming Playback**: Listen to audio directly in the browser without downloading
 - **Download Support**: Download audio files only when needed
+- **In-Memory Generation**: Audio generated in memory for immediate playback
+- **Refresh Persistence**: Audio persists across page refreshes using localStorage
+- **Automatic Cleanup**: Temporary files automatically removed after 10 minutes
 
 ### 📊 **Rich Metadata Processing**
 - Scripts incorporate comprehensive academic metadata:
@@ -139,6 +159,9 @@ The AI Video Script Generator follows a modern microservices architecture with t
 - **Persistent State**: Selections survive search, filter, and page changes using localStorage
 
 ### 🎬 **Quality Control & Export**
+- **Enhanced Script Cleaning**: Removes AI-generated comments and annotations
+- **Strict Format Enforcement**: Ensures 3-paragraph structure with visual cues
+- **Paragraph Structure Validation**: Automatic detection and correction of formatting issues
 - Built-in validation and format preservation for Arabic translations
 - Export-ready bilingual video scripts
 - Quality control results display
@@ -206,7 +229,7 @@ AI-video-scripts-generator/
 ├── next.config.ts                 # Next.js configuration
 ├── .env                           # Environment variables (create this)
 ├── temp_audio/                    # Temporary audio files (auto-cleanup every 10 min)
-├── tts_models/                    # Downloaded TTS voice models
+├── tts_models/                    # Downloaded TTS voice models (auto-downloaded)
 ├── app/                           # Next.js App Router
 │   ├── components/                # React components
 │   │   ├── BatchProcessing.tsx    # Batch processing interface

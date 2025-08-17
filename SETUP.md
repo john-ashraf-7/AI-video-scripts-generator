@@ -268,6 +268,18 @@ python install_dependencies.py
    - Select multiple items and use "Process X Items" for batch processing
    - Watch the progress indicators during processing
 
+6. **Test Advanced Regeneration:**
+   - After generating a script, use the "Regenerate Script" button
+   - Choose to regenerate English script, Arabic translation, or both
+   - Add specific comments like "Make it more engaging" or "Improve the Arabic translation"
+   - Test the three regeneration modes: English only, Arabic only, and both
+
+7. **Test Audio Generation:**
+   - Click "Generate Audio" to create speech from your scripts
+   - Choose from different voice options (Amy, Ryan, LibriTTS)
+   - Listen to audio directly in the browser
+   - Download audio files when needed
+
 ## 🔍 Troubleshooting
 
 ### Common Issues:

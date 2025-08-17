@@ -11,6 +11,7 @@ import {
 interface RegenerateScriptProps {
   originalMetadata: GalleryItemMetadata;
   originalScript: string;
+  originalArabicScript?: string;
   artifactType: string;
   onRegenerate: (newScript: ScriptGenerationResponse) => void;
 }
@@ -18,6 +19,7 @@ interface RegenerateScriptProps {
 export default function RegenerateScript({
   originalMetadata,
   originalScript,
+  originalArabicScript,
   artifactType,
   onRegenerate
 }: RegenerateScriptProps) {
@@ -25,8 +27,15 @@ export default function RegenerateScript({
   const [comments, setComments] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [message, setMessage] = useState("");
+  const [regenerateEnglish, setRegenerateEnglish] = useState(true);
+  const [regenerateArabic, setRegenerateArabic] = useState(true);
 
   const handleRegenerate = async () => {
+    if (!regenerateEnglish && !regenerateArabic) {
+      setMessage("Please select at least one option to regenerate.");
+      return;
+    }
+    
     if (!comments.trim()) {
       setMessage("Please provide comments before regenerating.");
       return;
@@ -40,7 +49,10 @@ export default function RegenerateScript({
         original_metadata: originalMetadata,
         artifact_type: artifactType,
         user_comments: comments,
-        original_script: originalScript
+        original_script: originalScript,
+        original_arabic_script: originalArabicScript,
+        regenerate_english: regenerateEnglish,
+        regenerate_arabic: regenerateArabic
       };
 
       const newScript = await regenerateScriptWithComments(regenerateData);
@@ -76,6 +88,38 @@ export default function RegenerateScript({
           <h3 className="text-lg font-semibold mb-4 text-blue-600">
             Regenerate Script with Comments
           </h3>
+
+          {/* Regeneration Options */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              What would you like to regenerate? *
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={regenerateEnglish}
+                  onChange={(e) => setRegenerateEnglish(e.target.checked)}
+                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="text-sm text-gray-700">English Script</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={regenerateArabic}
+                  onChange={(e) => setRegenerateArabic(e.target.checked)}
+                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="text-sm text-gray-700">Arabic Translation</span>
+              </label>
+            </div>
+            {!regenerateEnglish && !regenerateArabic && (
+              <p className="text-sm text-red-600 mt-1">
+                Please select at least one option to regenerate.
+              </p>
+            )}
+          </div>
 
           {/* Comments Text */}
           <div className="mb-4">
@@ -117,8 +161,8 @@ export default function RegenerateScript({
           {/* Help Text */}
           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-700">
-              <strong>Tip:</strong> Be specific about what you&apos;d like to change. For example: 
-              &ldquo;Make it more engaging&rdquo;, &ldquo;Add more details about the author&rdquo;, 
+              <strong>Tip:</strong> Choose what you want to regenerate and be specific about your changes. For example: 
+              &ldquo;Make the English script more engaging&rdquo;, &ldquo;Improve the Arabic translation&rdquo;, 
               or &ldquo;Change the tone to be more formal&rdquo;.
             </p>
           </div>
