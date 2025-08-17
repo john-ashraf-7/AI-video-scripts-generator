@@ -40,6 +40,12 @@ export default function SearchAndFilter({
     const sort = e.target.value;
     setSortBy(sort);
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleApplyFilters();
+    }
+  };
   
   const handleClearFilters = () => {
     setSortBy('Title A-Z');
@@ -54,9 +60,9 @@ export default function SearchAndFilter({
 
   return (
     <div className="bg-darkBeige p-6 rounded-xl shadow-lg mb-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Search Input */}
-        <div>
+      <div className="grid grid-cols-12 gap-4">
+        {/* Search Input - Takes more space */}
+        <div className="col-span-6">
           <label className="font-semibold text-gray-800 text-md line-clamp-2 leading-tight mb-2">
             Search
           </label>
@@ -64,13 +70,14 @@ export default function SearchAndFilter({
             type="text"
             value={currentSearchQuery}
             onChange={handleSearchChange}
+            onKeyDown={handleKeyDown}
             placeholder="Search items..."
             className="w-full px-3 py-2 border border-gray-300 bg-lightBeige rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent font-semibold text-gray-800 text-md line-clamp-2 leading-tight"
           />
         </div>
 
-        {/* Search Filter */}
-        <div>
+        {/* Search Filter - Takes less space */}
+        <div className="col-span-2">
           <label className="font-semibold text-gray-800 text-md line-clamp-2 leading-tight mb-2">
             Search In
           </label>
@@ -94,8 +101,8 @@ export default function SearchAndFilter({
           </div>
         </div>
 
-        {/* Sort */}
-        <div>
+        {/* Sort - Takes less space */}
+        <div className="col-span-2">
           <label className="font-semibold text-gray-800 text-md line-clamp-2 leading-tight mb-2">
             Sort By
           </label>
@@ -113,17 +120,17 @@ export default function SearchAndFilter({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
+        {/* Action Buttons - Takes less space */}
+        <div className="col-span-2 flex gap-2">
           <button
             onClick={handleApplyFilters}
-            className="flex-1 bg-calmRed text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+            className="flex-1 bg-calmRed text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
           >
-            Apply Filters
+            Apply
           </button>
           <button
             onClick={handleClearFilters}
-            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+            className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold text-sm"
           >
             Clear
           </button>

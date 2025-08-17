@@ -42,43 +42,37 @@ export default function PageNavigation({ pageNumber, onPageChange}: PageNavigati
   }
 
   return (
-  <div className="bg-darkBeige py-6 px-20 rounded-xl shadow-lg flex flex-col h-full w-full justify-between items-center">
-    <div className="flex items-center gap-3">
+  <div className="bg-darkBeige py-4 px-5 rounded-xl shadow-lg flex flex-col justify-center items-center w-full">
+    <div className="flex items-center gap-3 mb-3">
       <button
-        className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        className="cursor-pointer px-3 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
         onClick={handlePrevious}
       >
         &lt;
       </button>
 
-      <span className="px-3 py-2 text-gray-600 font-bold">
+      <span className="px-3 py-2 text-gray-600 font-bold text-sm">
         Page {pageNumber}
       </span>
 
       <button
-        className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        className="cursor-pointer px-3 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
         onClick={handleNext}
       >
         &gt;
       </button>
     </div>
-    <div className="h-full w-full flex items-center justify-center">
-      <img 
-        src="/websiteLayout.png"
-        alt="a website layout"
-        className="object-contain h-full max-h-[130px]"
-      />
-    </div>
+    
     <div className="flex items-center gap-3">
       <input
         type="number"
         value={inputValue}
         onChange={e => setInputValue(e.target.value)}
         placeholder="Page #"
-        className="px-3 py-2 w-48 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        className="px-3 py-2 w-28 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed text-sm"
       />
       <button
-        className="cursor-pointer px-4 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
+        className="cursor-pointer px-3 py-2 font-semibold text-gray-800 bg-lightBeige border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed"
         onClick={() => handleSearch(Number(inputValue))}
       >
         Go

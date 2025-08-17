@@ -210,8 +210,8 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex gap-4 mb-8 h-64">
-        <div className="w-2/3">
+      <div className="flex gap-4 mb-8">
+        <div className="w-4/5">
           <div>
             <SearchAndFilter
               onFilterChange={onFilterChange}
@@ -226,7 +226,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
             </p>
           </div>
         </div>
-        <div className="w-1/3">
+        <div className="w-1/5">
           <PageNavigation pageNumber={currentPageNumber} onPageChange={onPageChange}/>
         </div>
       </div>
