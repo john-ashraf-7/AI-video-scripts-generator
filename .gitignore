@@ -47,3 +47,6 @@ next-env.d.ts
 
 # temporary audio files
 temp_audio/
+
+# TTS voice models (large files, downloaded automatically)
+tts_models/
