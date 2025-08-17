@@ -1,17 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface SearchAndFilterProps {
   onFilterChange: (sortBy: string, searchQuery: string, searchFilter: string) => void;
+  initialSearchQuery?: string;
+  initialSearchFilter?: string;
+  initialSortBy?: string;
 }
 
 export default function SearchAndFilter({
-  onFilterChange
+  onFilterChange,
+  initialSearchQuery = "",
+  initialSearchFilter = "All Fields",
+  initialSortBy = "Title A-Z"
 }: SearchAndFilterProps) {
-  const [currentSortBy, setSortBy] = useState<string>("Title A-Z");
-  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>("");
-  const [currentSearchFilter, setCurrentSearchFilter] = useState("All Fields");
+  const [currentSortBy, setSortBy] = useState<string>(initialSortBy);
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>(initialSearchQuery);
+  const [currentSearchFilter, setCurrentSearchFilter] = useState(initialSearchFilter);
+
+  // Update state when initial values change
+  useEffect(() => {
+    setSortBy(initialSortBy);
+    setCurrentSearchQuery(initialSearchQuery);
+    setCurrentSearchFilter(initialSearchFilter);
+  }, [initialSortBy, initialSearchQuery, initialSearchFilter]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -67,11 +80,11 @@ export default function SearchAndFilter({
               onChange={handleFilterChange}
               className="w-full bg-lightBeige font-semibold text-gray-800 text-md line-clamp-2 leading-tight px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-calmRed focus:border-transparent appearance-none cursor-pointer"
             >
-              <option value="all">All Fields</option>
-              <option value="title">Title</option>
-              <option value="creator">Creator</option>
-              <option value="call_number">Call Number</option>
-              <option value="date">Date</option>
+              <option value="All Fields">All Fields</option>
+              <option value="Title">Title</option>
+              <option value="Creator">Creator</option>
+              <option value="Call number">Call Number</option>
+              <option value="Date">Date</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,30 +113,20 @@ export default function SearchAndFilter({
           </div>
         </div>
 
-        {/* Clear & apply Filters */}
-        <div className="flex flex-row gap-4">
-          <div className="flex justify-center items-center">
-            <label className="text-sm font-medium text-gray-700">
-              &nbsp;
-            </label>
-            <button
-              onClick={handleClearFilters}
-              className="w-full font-semibold text-gray-800 text-md line-clamp-2 leading-tight cursor-pointer px-4 py-2 bg-lightBeige text-darkBeige rounded-lg hover:shadow-lg transition-colors"
-            >
-              Clear Filters
-            </button>
-          </div>
-          <div className="flex justify-center items-center">
-            <label className="text-sm font-medium text-gray-700">
-              &nbsp;
-            </label>
-            <button
-              onClick={handleApplyFilters}
-              className="w-full font-semibold text-gray-800 text-md line-clamp-2 leading-tight cursor-pointer px-4 py-2 bg-lightBeige text-darkBeige rounded-lg hover:shadow-lg transition-colors"
-            >
-              Apply Filters
-            </button>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleApplyFilters}
+            className="flex-1 bg-calmRed text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+          >
+            Apply Filters
+          </button>
+          <button
+            onClick={handleClearFilters}
+            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+          >
+            Clear
+          </button>
         </div>
       </div>
     </div>

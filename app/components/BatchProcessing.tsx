@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { GalleryItem, type ScriptGenerationResponse } from '../../api';
+import ScriptViewer from './ScriptViewer';
 
 interface BatchResult {
   item: GalleryItem;
@@ -10,14 +11,14 @@ interface BatchResult {
 
 interface BatchProcessingProps {
   selectedItems: Set<string>;
-  allItems: GalleryItem[];
+  allItems?: GalleryItem[]; // Optional for visual indicators
   onClearSelection: () => void;
   setFilteredItems: (items: GalleryItem[]) => void;
   clearResults: () => void;
   setHasBatchResults: (hasResults: boolean) => void;
 }
 
-export default function BatchProcessing({ selectedItems, allItems, onClearSelection, setFilteredItems, clearResults, setHasBatchResults}: BatchProcessingProps) {
+export default function BatchProcessing({ selectedItems, allItems = [], onClearSelection, setFilteredItems, clearResults, setHasBatchResults}: BatchProcessingProps) {
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
@@ -39,23 +40,42 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
       alert("Please select at least one item to process.");
       return;
     }
+    
+    console.log("Selected items:", selectedItems);
+    
     setFilteredItems([]);
     setBatchProcessing(true);
     setBatchProgress({ current: 0, total: selectedItems.size });
     setBatchResults([]);
 
-    const selectedItemData = allItems.filter(item => item.id && selectedItems.has(item.id.toString()));
+    // Instead of filtering from current items, fetch the selected items from the database
+    const selectedItemIds = Array.from(selectedItems);
     const results: BatchResult[] = [];
 
-    for (let i = 0; i < selectedItemData.length; i++) {
-      const item = selectedItemData[i];
+    for (let i = 0; i < selectedItemIds.length; i++) {
+      const itemId = selectedItemIds[i];
       
       // Update progress
-      setBatchProgress({ current: i + 1, total: selectedItemData.length });
+      setBatchProgress({ current: i + 1, total: selectedItemIds.length });
       
       try {
+        // Fetch the item details from the database
         const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002';
-        const response = await fetch(`${apiUrl}/generate-script`, {
+        const itemResponse = await fetch(`${apiUrl}/gallery/books/${itemId}`);
+        
+        if (!itemResponse.ok) {
+          console.error(`Failed to fetch item ${itemId}:`, itemResponse.status);
+          results.push({ 
+            item: { _id: itemId, Title: 'Unknown Item' } as GalleryItem, 
+            result: { error: `Failed to fetch item: ${itemResponse.status}` }
+          });
+          continue;
+        }
+        
+        const item: GalleryItem = await itemResponse.json();
+        
+        // Generate script for this item
+        const scriptResponse = await fetch(`${apiUrl}/generate-script`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -63,42 +83,45 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
           body: JSON.stringify({
             artifact_type: "publication_deep_dive",
             metadata: {
-              title: item.Title,
-              creator: item.Creator,
-              date: item.Date,
-              description: item.Description,
-              call_number: item['Call number'],
+              title: item.Title || item['Title (English)'] || item['Title (Arabic)'] || 'Untitled',
+              creator: item.Creator || item['Creator (Arabic)'] || 'Unknown',
+              date: item.Date || 'Unknown',
+              description: item.Description || '',
+              call_number: item['Call number'] || '',
               // Additional fields for richer context
-              subject: item.Subject,
-              language: item.Language,
-              collection: item.Collection,
-              source: item.Source,
-              publisher: item.Publisher,
-              location: item.Location,
-              rights: item.Rights,
-              notes: item.Notes,
-              type: item.Type,
-              genre: item['Genre (AAT)'],
-              title_arabic: item['Title (Arabic)'],
-              title_english: item['Title (English)'],
-              creator_arabic: item['Creator (Arabic)'],
-              link_to_catalogue: item['Link to catalogue']
+              subject: item.Subject || '',
+              language: item.Language || '',
+              collection: item.Collection || '',
+              source: item.Source || '',
+              publisher: item.Publisher || '',
+              location: item.Location || '',
+              rights: item.Rights || '',
+              notes: item.Notes || '',
+              type: item.Type || '',
+              genre: item['Genre (AAT)'] || '',
+              title_arabic: item['Title (Arabic)'] || '',
+              title_english: item['Title (English)'] || '',
+              creator_arabic: item['Creator (Arabic)'] || '',
+              link_to_catalogue: item['Link to catalogue'] || ''
             }
           })
         });
         
-        if (response.ok) {
-          const result: ScriptGenerationResponse = await response.json();
+        if (scriptResponse.ok) {
+          const result: ScriptGenerationResponse = await scriptResponse.json();
           results.push({ item, result });
         } else {
+          const errorText = await scriptResponse.text();
+          console.error('API Error:', scriptResponse.status, errorText);
           results.push({ 
             item, 
-            result: { error: 'Failed to generate script' }
+            result: { error: `Failed to generate script: ${scriptResponse.status}` }
           });
         }
       } catch (error) {
+        console.error('Network Error:', error);
         results.push({ 
-          item, 
+          item: { _id: itemId, Title: 'Unknown Item' } as GalleryItem, 
           result: { error: error instanceof Error ? error.message : 'Network error' }
         });
       }
@@ -135,6 +158,13 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
     clearResults();
   };
 
+  const handleRegenerate = (index: number, newScript: ScriptGenerationResponse) => {
+    const updatedResults = [...batchResults];
+    updatedResults[index].result = newScript;
+    setBatchResults(updatedResults);
+    localStorage.setItem('batchResults', JSON.stringify(updatedResults));
+  };
+
   if (!isClient) {
     return null;
   }
@@ -147,6 +177,22 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
           <div className="bg-calmRed text-white px-4 py-2 rounded-lg">
             {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected
           </div>
+          
+          {/* Show warning if some selected items are not in current results */}
+          {(() => {
+            const availableItemIds = new Set(allItems.map(item => item._id));
+            const missingItems = Array.from(selectedItems).filter(id => !availableItemIds.has(id));
+            if (missingItems.length > 0) {
+              return (
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-2 rounded-lg">
+                  ℹ️ {missingItems.length} selected item{missingItems.length !== 1 ? 's' : ''} not in current results. 
+                  Your selections are preserved and will be processed.
+                </div>
+              );
+            }
+            return null;
+          })()}
+          
           <button
             onClick={handleBatchProcess}
             disabled={batchProcessing}
@@ -211,34 +257,26 @@ export default function BatchProcessing({ selectedItems, allItems, onClearSelect
             <h2 className="text-xl font-bold mb-4 text-center text-gray-800">
               Batch Processing Results
             </h2>
-            <div className="space-y-6">
+            <div className="space-y-8">
               {batchResults.map((batchResult, index) => (
-                <div key={index} className="bg-lightBeige p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-2 text-calmRed">
-                    {batchResult.item.Title}
+                <div key={index} className="bg-lightBeige p-6 rounded-lg">
+                  <h3 className="font-semibold text-xl mb-4 text-calmRed">
+                    {batchResult.item.Title || batchResult.item['Title (English)'] || batchResult.item['Title (Arabic)'] || 'Untitled'}
                   </h3>
-                  {batchResult.result.error ? (
-                    <p className="text-red-600">Error: {batchResult.result.error}</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {batchResult.result.english_script && (
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-2">English Script:</h4>
-                          <div className="bg-lightBeige p-3 rounded border whitespace-pre-wrap">
-                            {batchResult.result.english_script}
-                          </div>
-                        </div>
-                      )}
-                      {batchResult.result.arabic_translation_refined && (
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-2">Arabic Translation:</h4>
-                          <div className="bg-lightBeige p-3 rounded border whitespace-pre-wrap text-right" dir="rtl">
-                            {batchResult.result.arabic_translation_refined}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  
+                  {/* Convert GalleryItem to GalleryItemMetadata for ScriptViewer */}
+                  <ScriptViewer
+                    result={batchResult.result}
+                    metadata={{
+                      title: batchResult.item.Title || batchResult.item['Title (English)'] || batchResult.item['Title (Arabic)'] || '',
+                      creator: batchResult.item.Creator || batchResult.item['Creator (Arabic)'] || '',
+                      date: batchResult.item.Date || '',
+                      description: batchResult.item.Description || '',
+                      call_number: batchResult.item['Call number'] || ''
+                    }}
+                    artifactType="publication_deep_dive"
+                    onRegenerate={(newScript) => handleRegenerate(index, newScript)}
+                  />
                 </div>
               ))}
             </div>

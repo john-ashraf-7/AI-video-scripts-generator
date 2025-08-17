@@ -3,8 +3,11 @@
 import { GalleryItem } from "@/api";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function DetailsCard({ record, itemId }: { record: Partial<GalleryItem>; itemId?: string }) {
+    const router = useRouter();
+    
     // Load song images for records without an Image URL
     const ImageURL = record['Image URL'] || (record.Type?.includes("song") ? "/songs.png" : "/imageNotFound.png");
 
@@ -21,6 +24,35 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
             key !== 'Title (English)' && 
             key !== 'Title (Arabic)'
         );
+
+    const handleAddToSelection = () => {
+        // Get current search state from localStorage
+        const searchState = localStorage.getItem('searchState');
+        const selectedItems = localStorage.getItem('selectedItems');
+        
+        // Add current item to selection
+        const currentSelected = selectedItems ? JSON.parse(selectedItems) : [];
+        if (!currentSelected.includes(itemId || record._id)) {
+            currentSelected.push(itemId || record._id);
+            localStorage.setItem('selectedItems', JSON.stringify(currentSelected));
+        }
+        
+        // Navigate back to home with search state preserved
+        if (searchState) {
+            const { searchQuery, searchFilter, sortBy, pageNumber } = JSON.parse(searchState);
+            // Create a URL that preserves the search state
+            const params = new URLSearchParams();
+            if (searchQuery) params.append('search', searchQuery);
+            if (searchFilter) params.append('filter', searchFilter);
+            if (sortBy) params.append('sort', sortBy);
+            if (pageNumber) params.append('page', pageNumber.toString());
+            params.append('select', itemId || record._id || '');
+            
+            router.push(`/?${params.toString()}`);
+        } else {
+            router.push(`/?select=${itemId || record._id}`);
+        }
+    };
 
     return (
         <div className="flex justify-center items-center min-h-screen p-4">
@@ -51,13 +83,13 @@ export default function DetailsCard({ record, itemId }: { record: Partial<Galler
                     ))}
                 </div>
                 <div className="mt-4">
-                    <a 
-                        href={`/?select=${itemId || record._id}`}
+                    <button 
+                        onClick={handleAddToSelection}
                         className="px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 hover:scale-105 shadow-md cursor-pointer inline-block text-center"
                         style={{backgroundColor: 'var(--color-calmRed)', color: 'white', textDecoration: 'none'}}
                     >
                         Add to selection
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>

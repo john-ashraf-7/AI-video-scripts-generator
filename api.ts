@@ -94,6 +94,18 @@ interface ScriptGenerationResponse {
   error?: string;                         // Error message if generation failed
   processing_time?: number;               // Time taken for processing
   metadata?: GalleryItemMetadata;         // Original metadata used
+  regenerated?: boolean;                  // Whether this is a regenerated script
+  comments_incorporated?: boolean;        // Whether comments were incorporated
+}
+
+/**
+ * Interface for script regeneration request
+ */
+interface RegenerateScriptRequest {
+  original_metadata: GalleryItemMetadata;
+  artifact_type: string;
+  user_comments: string;
+  original_script: string;
 }
 
 /**
@@ -119,6 +131,48 @@ export const healthCheck = async (): Promise<HealthCheckResponse> => {
   } catch (error) {
     // Re-throw with more descriptive error message
     throw new Error(`Health check failed: ${(error as Error).message || 'Unknown error'}`);
+  }
+};
+
+/**
+ * Regenerate Script with Comments API
+ * 
+ * Regenerates a script incorporating user comments to create an improved version.
+ * 
+ * @param requestData - The regeneration request with original data and user comments
+ * @returns Promise<ScriptGenerationResponse> - Regenerated script with comments incorporated
+ * @throws Error if the regeneration fails
+ */
+export const regenerateScriptWithComments = async (
+  requestData: RegenerateScriptRequest
+): Promise<ScriptGenerationResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/regenerate-script`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData),
+    });
+    
+    if (!response.ok) {
+      let errorMessage = 'Script regeneration failed';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(`API Error (${response.status}): ${errorMessage}`);
+    }
+    
+    const data: ScriptGenerationResponse = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No response from server. Please check if the backend is running.');
+    }
+    throw error instanceof Error ? error : new Error(`Script regeneration failed: ${String(error)}`);
   }
 };
 
@@ -269,4 +323,5 @@ export type {
   GalleryResponse,
   ScriptGenerationRequest,
   ScriptGenerationResponse,
+  RegenerateScriptRequest,
 };

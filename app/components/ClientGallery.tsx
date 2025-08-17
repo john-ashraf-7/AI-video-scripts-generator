@@ -32,6 +32,13 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
 
   const [hasBatchResults, setHasBatchResults] = useState(false);
 
+  console.log('ClientGallery initialized with:', {
+    initialItemsCount: initialItems.length,
+    allItemsCount: allItems.length,
+    filteredItemsCount: filteredItems.length,
+    totalItems,
+    totalPages
+  });
 
   // Fix hydration error by loading localStorage after mount
   useEffect(() => {
@@ -39,26 +46,79 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
     if (saved) {
       setSelectedItems(new Set(JSON.parse(saved)));
     }
+    
+    // Load saved search state
+    const savedSearchState = localStorage.getItem('searchState');
+    if (savedSearchState) {
+      const { searchQuery, searchFilter, sortBy, pageNumber } = JSON.parse(savedSearchState);
+      setCurrentSearchQuery(searchQuery || "");
+      setCurrentSearchFilter(searchFilter || "All Fields");
+      setCurrentSortBy(sortBy || "Title A-Z");
+      setCurrentPageNumber(pageNumber || 1);
+    }
   }, []);
 
   // Handle URL selection parameter
   useEffect(() => {
     const selectId = searchParams.get('select');
+    const searchQuery = searchParams.get('search');
+    const searchFilter = searchParams.get('filter');
+    const sortBy = searchParams.get('sort');
+    const pageNumber = searchParams.get('page');
+    
+    console.log('URL parameters:', { selectId, searchQuery, searchFilter, sortBy, pageNumber });
+    
     if (selectId && !processedSelection.current) {
       processedSelection.current = true;
       // Find the item with the matching _id and select it
       const itemToSelect = allItems.find(item => item._id === selectId);
-      if (itemToSelect && itemToSelect.id) {
+      if (itemToSelect) {
         setSelectedItems(prev => {
           const newSet = new Set(prev);
-          newSet.add(itemToSelect.id!.toString());
+          newSet.add(itemToSelect._id);
           // Save to localStorage
           localStorage.setItem('selectedItems', JSON.stringify([...newSet]));
           return newSet;
         });
-        // Remove the query parameter from URL
-        window.history.replaceState({}, '', '/');
       }
+    }
+    
+    // Handle search state restoration from URL
+    if (searchQuery || searchFilter || sortBy || pageNumber) {
+      const newSearchQuery = searchQuery || currentSearchQuery;
+      const newSearchFilter = searchFilter || currentSearchFilter;
+      const newSortBy = sortBy || currentSortBy;
+      const newPageNumber = pageNumber ? parseInt(pageNumber) : currentPageNumber;
+      
+      console.log('Restoring search state:', { newSearchQuery, newSearchFilter, newSortBy, newPageNumber });
+      
+      // Update state
+      setCurrentSearchQuery(newSearchQuery);
+      setCurrentSearchFilter(newSearchFilter);
+      setCurrentSortBy(newSortBy);
+      setCurrentPageNumber(newPageNumber);
+      
+      // Save to localStorage
+      localStorage.setItem('searchState', JSON.stringify({
+        searchQuery: newSearchQuery,
+        searchFilter: newSearchFilter,
+        sortBy: newSortBy,
+        pageNumber: newPageNumber
+      }));
+      
+      // Apply the search filters immediately
+      if (searchQuery || searchFilter || sortBy) {
+        console.log('Applying search filters from URL');
+        onFilterChange(newSortBy, newSearchQuery, newSearchFilter);
+      } else if (pageNumber) {
+        console.log('Applying page change from URL');
+        onPageChange(newPageNumber);
+      }
+    }
+    
+    // Remove the query parameters from URL
+    if (selectId || searchQuery || searchFilter || sortBy || pageNumber) {
+      window.history.replaceState({}, '', '/');
     }
   }, [searchParams, allItems]);
 
@@ -81,22 +141,40 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
   const handleClearSelection = async () => {
     setSelectedItems(new Set());
     localStorage.removeItem('selectedItems');
-
   };
 
   const onFilterChange = async (sortBy: string, searchQuery: string, searchFilter: string) => {
     //it is important here to notice that states update in react asynchronously. meaning after the function is completed. that's why we pass the arguments down here rather than the updated states. and when the function is compelte, the states become up to date to be used in other functions.
+    console.log('onFilterChange called with:', { sortBy, searchQuery, searchFilter });
+    
     setFilteredItems([]);
     setCurrentSortBy(sortBy);
     setCurrentSearchQuery(searchQuery);
     setCurrentSearchFilter(searchFilter);
 
+    // Save search state to localStorage
+    localStorage.setItem('searchState', JSON.stringify({
+      searchQuery,
+      searchFilter,
+      sortBy,
+      pageNumber: 1
+    }));
+
     console.log(`Filters changed: sortBy=${sortBy}, searchQuery=${searchQuery}, searchFilter=${searchFilter}`);
 
-    const records = await getGalleryPage({page: currentPageNumber, limit: 100, sort: sortBy , searchQuery: searchQuery, searchIn: searchFilter});
-    setFilteredItems(records.books);
-    setTotalItems(records.total || 0); // Update total items
-    setTotalPages(records.total_pages || 1); // Update total pages
+    try {
+      const records = await getGalleryPage({page: 1, limit: 100, sort: sortBy , searchQuery: searchQuery, searchIn: searchFilter});
+      console.log('Search results:', records);
+      setFilteredItems(records.books);
+      setTotalItems(records.total || 0); // Update total items
+      setTotalPages(records.total_pages || 1); // Update total pages
+      setCurrentPageNumber(1); // Reset to page 1 when filtering
+    } catch (error) {
+      console.error('Error fetching search results:', error);
+      setFilteredItems([]);
+      setTotalItems(0);
+      setTotalPages(1);
+    }
   }
 
   const onPageChange = async (page: number) => {
@@ -106,6 +184,15 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
     }
     setFilteredItems([]);
     setCurrentPageNumber(page);
+    
+    // Save current page to search state
+    const currentSearchState = localStorage.getItem('searchState');
+    if (currentSearchState) {
+      const searchState = JSON.parse(currentSearchState);
+      searchState.pageNumber = page;
+      localStorage.setItem('searchState', JSON.stringify(searchState));
+    }
+    
     const records = await getGalleryPage({page: page, limit: 100, sort: currentSortBy , searchQuery: currentSearchQuery, searchIn: currentSearchFilter});
     setFilteredItems(records.books);
     setTotalItems(records.total || 0); // Update total items
@@ -128,6 +215,9 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
           <div>
             <SearchAndFilter
               onFilterChange={onFilterChange}
+              initialSearchQuery={currentSearchQuery}
+              initialSearchFilter={currentSearchFilter}
+              initialSortBy={currentSortBy}
             />
           </div>
           <div className="mb-6">
@@ -144,7 +234,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
       {/* Batch Processing - Moved outside of fixed height container */}
       <BatchProcessing 
         selectedItems={selectedItems}
-        allItems={allItems}
+        allItems={filteredItems}
         onClearSelection={handleClearSelection}
         setFilteredItems={setFilteredItems}
         clearResults={clearResults}
@@ -159,7 +249,7 @@ export default function ClientGallery({ initialItems }: ClientGalleryProps) {
           <Item 
             key={item._id} 
             item={item}
-            isSelected={item.id ? selectedItems.has(item.id.toString()) : false}
+            isSelected={selectedItems.has(item._id)}
             onSelect={handleItemSelect}
           /> 
         ))}

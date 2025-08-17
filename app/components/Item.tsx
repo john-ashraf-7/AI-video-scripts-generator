@@ -13,7 +13,7 @@ export default function Item({item, isSelected, onSelect}: ItemProps) {
     const ImageURL = item['Image URL'] || (item.Type?.includes("song") ? "/songs.png" : "/imageNotFound.png");
 
     const handleSelect = () => {
-        onSelect(item.id?.toString() || '');
+        onSelect(item._id);
     };
 
     return(

@@ -70,6 +70,13 @@ class GalleryItem(BaseModel):
     call_number: str
 
 
+class RegenerateScriptRequest(BaseModel):
+    original_metadata: dict
+    artifact_type: str
+    user_comments: str
+    original_script: str
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Check if the API and Ollama are running properly."""
@@ -90,6 +97,60 @@ async def health_check():
     except Exception as e:
         return HealthResponse(
             status="error", ollama_model="unknown", message=f"Error: {str(e)}"
+        )
+
+
+@app.post("/regenerate-script")
+async def regenerate_script_with_comments(request: RegenerateScriptRequest):
+    """Regenerate a script incorporating user comments."""
+    try:
+        # Create an enhanced prompt that includes the user comments
+        enhanced_prompt = f"""
+        Please regenerate the script for the following item, incorporating the user's comments.
+
+        Original Metadata:
+        {json.dumps(request.original_metadata, indent=2)}
+
+        Original Script:
+        {request.original_script}
+
+        User Comments:
+        {request.user_comments}
+
+        Please create an improved version that addresses the user's comments while maintaining the original structure and purpose.
+        """
+
+        # Generate the new script using the enhanced prompt
+        raw_script = script_generator._send_prompt_to_ollama(enhanced_prompt)
+        script = script_generator._clean_raw_script(raw_script)
+        
+        qc_passed, qc_message = script_generator._quality_check(script)
+
+        result = {
+            "english_script": script,
+            "qc_passed": qc_passed,
+            "qc_message": qc_message,
+            "arabic_translation_refined": None,
+            "regenerated": True,
+            "comments_incorporated": True
+        }
+
+        if qc_passed:
+            try:
+                arabic_translation = script_generator.translate_to_arabic(script)
+                refined_arabic = script_generator.refine_translation_with_ollama(
+                    arabic_translation
+                )
+                result["arabic_translation_refined"] = refined_arabic
+            except Exception as e:
+                result["arabic_translation_refined"] = f"Translation failed: {str(e)}"
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Script regeneration failed: {str(e)}"
         )
 
 
